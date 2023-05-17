@@ -20,7 +20,8 @@ import collections
 from unifold.data import residue_constants, msa_pairing
 import numpy as np
 from .utils import correct_template_restypes
-
+import logging
+logger = logging.getLogger(__name__)
 FeatureDict = MutableMapping[str, np.ndarray]
 
 REQUIRED_FEATURES = frozenset(
@@ -97,7 +98,6 @@ def pair_and_merge(all_chain_features: MutableMapping[str, FeatureDict]) -> Feat
     np_chains_list = all_chain_features
 
     pair_msa_sequences = not _is_homomer_or_monomer(np_chains_list)
-
     if pair_msa_sequences:
         np_chains_list = msa_pairing.create_paired_features(chains=np_chains_list)
         np_chains_list = msa_pairing.deduplicate_unpaired_sequences(np_chains_list)
@@ -147,7 +147,21 @@ def crop_chains(
 
     return cropped_chains
 
-
+def shuffle_matrix(input_matrix,new_row_indexes):
+    """
+    Added an extra function that shuffle the msa matrices
+    """
+    if input_matrix.shape[0] <=3:
+        return input_matrix
+    else:
+        first_row = np.array([input_matrix[0]])
+        rest = input_matrix[1:,:]
+        rest = rest[new_row_indexes]
+        output_matrix = np.concatenate((first_row,rest),axis=0)
+        assert output_matrix.shape == input_matrix.shape,f"shuffling has led to dimension error input shape : {input_matrix.shape} output shape: {output_matrix.shape}"
+        assert not np.array_equal(input_matrix,output_matrix),"shuffling failed"
+        return output_matrix
+    
 def _crop_single_chain(
     chain: FeatureDict, msa_crop_size: int, pair_msa_sequences: bool, max_templates: int
 ) -> FeatureDict:
@@ -179,6 +193,13 @@ def _crop_single_chain(
         num_templates = chain["template_aatype"].shape[0]
         templates_crop_size = np.minimum(num_templates, max_templates)
 
+    msa_size_all_seq = chain["msa_all_seq"].shape[0]
+    msa_crop_size_all_seq = np.minimum(msa_size_all_seq, msa_crop_size // 2)
+    if msa_crop_size_all_seq==0:
+        msa_crop_size_all_seq +=1
+    new_row_indexes =np.arange(msa_crop_size_all_seq-1) 
+    np.random.shuffle(new_row_indexes)
+    
     for k in chain:
         k_split = k.split("_all_seq")[0]
         if k_split in msa_pairing.TEMPLATE_FEATURES:
@@ -186,6 +207,7 @@ def _crop_single_chain(
         elif k_split in msa_pairing.MSA_FEATURES:
             if "_all_seq" in k and pair_msa_sequences:
                 chain[k] = chain[k][:msa_crop_size_all_seq, :]
+                chain[k] = shuffle_matrix(chain[k],new_row_indexes)
             else:
                 chain[k] = chain[k][:msa_crop_size, :]
 

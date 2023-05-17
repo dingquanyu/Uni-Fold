@@ -427,6 +427,7 @@ class AlphaFold(nn.Module):
         num_ensembles = int(batch["msa_mask"].shape[0]) // num_iters
         if self.training:
             # don't use ensemble during training
+            num_ensembles = 1
             assert num_ensembles == 1
 
         # convert dtypes in batch
