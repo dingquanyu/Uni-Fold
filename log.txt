@@ -1,0 +1,756 @@
+n_gpu per node 8
+OMPI_COMM_WORLD_SIZE 1
+OMPI_COMM_WORLD_RANK 0
+MASTER_IP 127.0.0.1
+MASTER_PORT 10087
+data /g/alphafold/unifold_multimer_train_db
+save_dir /scratch/gyu/finetune_unifold_multimer_gpu2526
+decay_step 100
+warmup_step 50
+decay_ratio 1.0
+lr 5e-4
+total_step 100
+update_freq 1
+seed 31
+data_folder:
+eval_multi_label.json
+eval_sample_weight.json
+pdb_assembly.json
+pdb_features
+pdb_labels
+pdb_uniprots
+sd_features
+sd_labels
+sd_train_sample_weight.json
+train_multi_label.json
+train_sample_weight.json
+create folder for save
+start training
+ckp exists.
+fused_multi_tensor is not installed corrected
+fused_rounding is not installed corrected
+fused_layer_norm is not installed corrected
+fused_softmax is not installed corrected
+2023-05-09 16:34:15 | INFO | unicore.distributed.utils | distributed init (rank 0): env://
+2023-05-09 16:34:15 | INFO | torch.distributed.distributed_c10d | Added key: store_based_barrier_key:1 to store for rank: 0
+2023-05-09 16:34:15 | INFO | torch.distributed.distributed_c10d | Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 1 nodes.
+2023-05-09 16:34:15 | INFO | unicore.distributed.utils | initialized host gpu26.cluster.embl.de as rank 0
+2023-05-09 16:34:16 | INFO | unicore_cli.train | Namespace(adam_betas='(0.9, 0.999)', adam_eps=1e-06, all_gather_list_size=16384, allreduce_fp32_grad=True, arch='af2', batch_size=1, batch_size_valid=1, best_checkpoint_metric='loss', bf16=True, bf16_sr=True, broadcast_buffers=False, bucket_cap_mb=25, checkpoint_suffix='', clip_norm=0.0, cpu=False, curriculum=0, data='/g/alphafold/unifold_multimer_train_db', data_buffer_size=32, ddp_backend='no_c10d', decay_ratio=1.0, decay_steps=100, device_id=0, disable_sd=False, disable_validation=False, distributed_backend='nccl', distributed_init_method='env://', distributed_no_spawn=True, distributed_port=-1, distributed_rank=0, distributed_world_size=1, ema_decay=0.999, empty_cache_freq=0, fast_stat_sync=False, find_unused_parameters=False, finetune_from_model=None, fix_batches_to_gpus=False, fixed_validation_seed=None, fp16=False, fp16_init_scale=128, fp16_no_flatten_grads=False, fp16_scale_tolerance=0.0, fp16_scale_window=None, json_prefix='', keep_best_checkpoints=-1, keep_interval_updates=10, keep_last_epochs=-1, load_from_ema=False, log_format='simple', log_interval=10, loss='afm', lr=[0.0005], lr_scheduler='exponential_decay', max_chains=18, max_epoch=1, max_update=100, max_valid_steps=None, maximize_best_checkpoint_metric=False, min_loss_scale=0.0001, model_name='multimer_af2', no_epoch_checkpoints=True, no_last_checkpoints=False, no_progress_bar=False, no_save=False, no_save_optimizer_state=False, no_seed_provided=False, nprocs_per_node=1, num_workers=1, optimizer='adam', optimizer_overrides='{}', patience=-1, per_sample_clip_norm=0.1, profile=False, required_batch_size_multiple=1, reset_dataloader=False, reset_lr_scheduler=False, reset_meters=False, reset_optimizer=False, restore_file='checkpoint_last.pt', save_dir='/scratch/gyu/finetune_unifold_multimer_gpu2526', save_interval=1, save_interval_updates=10, sd_prob=0.5, seed=31, skip_invalid_size_inputs_valid_test=False, stair_decay=True, stop_min_lr=-1, stop_time_hours=0, suppress_crashes=False, task='af2', tensorboard_logdir='/scratch/gyu/finetune_unifold_multimer_gpu2526/tsb/', threshold_loss_scale=None, tmp_save_dir='/scratch/jobs/26876029/tmp.zYzZbhEECu', train_subset='train', update_freq=[1], user_dir='unifold', valid_subset='valid', validate_after_updates=0, validate_interval=1, validate_interval_updates=10, validate_with_ema=False, warmup_updates=50, weight_decay=0.0)
+2023-05-09 16:34:17 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | load 14 chains (unique 14 sequences)
+2023-05-09 16:34:17 | INFO | torch.distributed.distributed_c10d | Added key: store_based_barrier_key:2 to store for rank: 0
+2023-05-09 16:34:17 | INFO | torch.distributed.distributed_c10d | Rank 0: Completed store-based barrier for key:store_based_barrier_key:2 with 1 nodes.
+2023-05-09 16:34:17 | INFO | unicore_cli.train | AlphafoldModel(
+  (model): AlphaFold(
+    (input_embedder): InputEmbedder(
+      (linear_tf_z_i): Linear(in_features=21, out_features=128, bias=True)
+      (linear_tf_z_j): Linear(in_features=21, out_features=128, bias=True)
+      (linear_tf_m): Linear(in_features=21, out_features=256, bias=True)
+      (linear_msa_m): Linear(in_features=49, out_features=256, bias=True)
+      (linear_relpos): Linear(in_features=73, out_features=128, bias=True)
+    )
+    (recycling_embedder): RecyclingEmbedder(
+      (linear): Linear(in_features=15, out_features=128, bias=True)
+      (layer_norm_m): LayerNorm(torch.Size([256]), eps=1e-05, elementwise_affine=True)
+      (layer_norm_z): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+    )
+    (template_angle_embedder): TemplateAngleEmbedder(
+      (linear_1): Linear(in_features=34, out_features=256, bias=True)
+      (act): ReLU()
+      (linear_2): Linear(in_features=256, out_features=256, bias=True)
+    )
+    (template_pair_embedder): TemplatePairEmbedder(
+      (linear): 8 X ...
+      Linear(in_features=39, out_features=64, bias=True)
+      (z_layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+      (z_linear): Linear(in_features=128, out_features=64, bias=True)
+    )
+    (template_pair_stack): TemplatePairStack(
+      (blocks): 2 X ...
+      TemplatePairStackBlock(
+        (tri_att_start): TriangleAttentionStarting(
+          (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=64, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=64, out_features=64, bias=False)
+            (linear_k): Linear(in_features=64, out_features=64, bias=False)
+            (linear_v): Linear(in_features=64, out_features=64, bias=False)
+            (linear_o): Linear(in_features=64, out_features=64, bias=True)
+            (linear_g): Linear(in_features=64, out_features=64, bias=True)
+          )
+        )
+        (tri_att_end): TriangleAttentionEnding(
+          (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=64, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=64, out_features=64, bias=False)
+            (linear_k): Linear(in_features=64, out_features=64, bias=False)
+            (linear_v): Linear(in_features=64, out_features=64, bias=False)
+            (linear_o): Linear(in_features=64, out_features=64, bias=True)
+            (linear_g): Linear(in_features=64, out_features=64, bias=True)
+          )
+        )
+        (tri_mul_out): TriangleMultiplicationOutgoing(
+          (linear_ab_p): Linear(in_features=64, out_features=128, bias=True)
+          (linear_ab_g): Linear(in_features=64, out_features=128, bias=True)
+          (linear_g): Linear(in_features=64, out_features=64, bias=True)
+          (linear_z): Linear(in_features=64, out_features=64, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+        )
+        (tri_mul_in): TriangleMultiplicationIncoming(
+          (linear_ab_p): Linear(in_features=64, out_features=128, bias=True)
+          (linear_ab_g): Linear(in_features=64, out_features=128, bias=True)
+          (linear_g): Linear(in_features=64, out_features=64, bias=True)
+          (linear_z): Linear(in_features=64, out_features=64, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+        )
+        (pair_transition): Transition(
+          (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=64, out_features=128, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=128, out_features=64, bias=True)
+        )
+      )
+      (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+    )
+    (template_proj): TemplateProjection(
+      (act): ReLU()
+      (output_linear): Linear(in_features=64, out_features=128, bias=True)
+    )
+    (extra_msa_embedder): ExtraMSAEmbedder(
+      (linear): Linear(in_features=25, out_features=64, bias=True)
+    )
+    (extra_msa_stack): ExtraMSAStack(
+      (blocks): 4 X ...
+      EvoformerIteration(
+        (msa_att_row): MSARowAttentionWithPairBias(
+          (layer_norm_m): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_z): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear_z): Linear(in_features=128, out_features=8, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=64, out_features=64, bias=False)
+            (linear_k): Linear(in_features=64, out_features=64, bias=False)
+            (linear_v): Linear(in_features=64, out_features=64, bias=False)
+            (linear_o): Linear(in_features=64, out_features=64, bias=True)
+            (linear_g): Linear(in_features=64, out_features=64, bias=True)
+          )
+        )
+        (msa_att_col): MSAColumnGlobalAttention(
+          (layer_norm_m): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (global_attention): GlobalAttention(
+            (linear_q): Linear(in_features=64, out_features=64, bias=False)
+            (linear_k): Linear(in_features=64, out_features=8, bias=False)
+            (linear_v): Linear(in_features=64, out_features=8, bias=False)
+            (linear_g): Linear(in_features=64, out_features=64, bias=True)
+            (linear_o): Linear(in_features=64, out_features=64, bias=True)
+            (sigmoid): Sigmoid()
+          )
+        )
+        (msa_transition): Transition(
+          (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=64, out_features=256, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=256, out_features=64, bias=True)
+        )
+        (outer_product_mean): OuterProductMean(
+          (layer_norm): LayerNorm(torch.Size([64]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=64, out_features=32, bias=True)
+          (linear_2): Linear(in_features=64, out_features=32, bias=True)
+          (linear_out): Linear(in_features=1024, out_features=128, bias=True)
+          (act): ReLU()
+          (linear_z): None
+          (layer_norm_out): None
+        )
+        (tri_mul_out): TriangleMultiplicationOutgoing(
+          (linear_ab_p): Linear(in_features=128, out_features=256, bias=True)
+          (linear_ab_g): Linear(in_features=128, out_features=256, bias=True)
+          (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          (linear_z): Linear(in_features=128, out_features=128, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+        )
+        (tri_mul_in): TriangleMultiplicationIncoming(
+          (linear_ab_p): Linear(in_features=128, out_features=256, bias=True)
+          (linear_ab_g): Linear(in_features=128, out_features=256, bias=True)
+          (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          (linear_z): Linear(in_features=128, out_features=128, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+        )
+        (tri_att_start): TriangleAttentionStarting(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=128, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=128, out_features=128, bias=False)
+            (linear_k): Linear(in_features=128, out_features=128, bias=False)
+            (linear_v): Linear(in_features=128, out_features=128, bias=False)
+            (linear_o): Linear(in_features=128, out_features=128, bias=True)
+            (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          )
+        )
+        (tri_att_end): TriangleAttentionEnding(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=128, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=128, out_features=128, bias=False)
+            (linear_k): Linear(in_features=128, out_features=128, bias=False)
+            (linear_v): Linear(in_features=128, out_features=128, bias=False)
+            (linear_o): Linear(in_features=128, out_features=128, bias=True)
+            (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          )
+        )
+        (pair_transition): Transition(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=128, out_features=512, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=512, out_features=128, bias=True)
+        )
+      )
+    )
+    (evoformer): EvoformerStack(
+      (blocks): 48 X ...
+      EvoformerIteration(
+        (msa_att_row): MSARowAttentionWithPairBias(
+          (layer_norm_m): LayerNorm(torch.Size([256]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_z): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear_z): Linear(in_features=128, out_features=8, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=256, out_features=256, bias=False)
+            (linear_k): Linear(in_features=256, out_features=256, bias=False)
+            (linear_v): Linear(in_features=256, out_features=256, bias=False)
+            (linear_o): Linear(in_features=256, out_features=256, bias=True)
+            (linear_g): Linear(in_features=256, out_features=256, bias=True)
+          )
+        )
+        (msa_att_col): MSAColumnAttention(
+          (layer_norm_m): LayerNorm(torch.Size([256]), eps=1e-05, elementwise_affine=True)
+          (mha): Attention(
+            (linear_q): Linear(in_features=256, out_features=256, bias=False)
+            (linear_k): Linear(in_features=256, out_features=256, bias=False)
+            (linear_v): Linear(in_features=256, out_features=256, bias=False)
+            (linear_o): Linear(in_features=256, out_features=256, bias=True)
+            (linear_g): Linear(in_features=256, out_features=256, bias=True)
+          )
+        )
+        (msa_transition): Transition(
+          (layer_norm): LayerNorm(torch.Size([256]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=256, out_features=1024, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=1024, out_features=256, bias=True)
+        )
+        (outer_product_mean): OuterProductMean(
+          (layer_norm): LayerNorm(torch.Size([256]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=256, out_features=32, bias=True)
+          (linear_2): Linear(in_features=256, out_features=32, bias=True)
+          (linear_out): Linear(in_features=1024, out_features=128, bias=True)
+          (act): ReLU()
+          (linear_z): None
+          (layer_norm_out): None
+        )
+        (tri_mul_out): TriangleMultiplicationOutgoing(
+          (linear_ab_p): Linear(in_features=128, out_features=256, bias=True)
+          (linear_ab_g): Linear(in_features=128, out_features=256, bias=True)
+          (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          (linear_z): Linear(in_features=128, out_features=128, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+        )
+        (tri_mul_in): TriangleMultiplicationIncoming(
+          (linear_ab_p): Linear(in_features=128, out_features=256, bias=True)
+          (linear_ab_g): Linear(in_features=128, out_features=256, bias=True)
+          (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          (linear_z): Linear(in_features=128, out_features=128, bias=True)
+          (layer_norm_in): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (layer_norm_out): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+        )
+        (tri_att_start): TriangleAttentionStarting(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=128, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=128, out_features=128, bias=False)
+            (linear_k): Linear(in_features=128, out_features=128, bias=False)
+            (linear_v): Linear(in_features=128, out_features=128, bias=False)
+            (linear_o): Linear(in_features=128, out_features=128, bias=True)
+            (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          )
+        )
+        (tri_att_end): TriangleAttentionEnding(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear): Linear(in_features=128, out_features=4, bias=False)
+          (mha): Attention(
+            (linear_q): Linear(in_features=128, out_features=128, bias=False)
+            (linear_k): Linear(in_features=128, out_features=128, bias=False)
+            (linear_v): Linear(in_features=128, out_features=128, bias=False)
+            (linear_o): Linear(in_features=128, out_features=128, bias=True)
+            (linear_g): Linear(in_features=128, out_features=128, bias=True)
+          )
+        )
+        (pair_transition): Transition(
+          (layer_norm): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+          (linear_1): Linear(in_features=128, out_features=512, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=512, out_features=128, bias=True)
+        )
+      )
+      (linear): Linear(in_features=256, out_features=384, bias=True)
+    )
+    (structure_module): StructureModule(
+      (layer_norm_s): LayerNorm(torch.Size([384]), eps=1e-05, elementwise_affine=True)
+      (layer_norm_z): LayerNorm(torch.Size([128]), eps=1e-05, elementwise_affine=True)
+      (linear_in): Linear(in_features=384, out_features=384, bias=True)
+      (ipa): InvariantPointAttention(
+        (linear_q): Linear(in_features=384, out_features=192, bias=False)
+        (linear_k): Linear(in_features=384, out_features=192, bias=False)
+        (linear_v): Linear(in_features=384, out_features=192, bias=False)
+        (linear_q_points): Linear(in_features=384, out_features=144, bias=True)
+        (linear_k_points): Linear(in_features=384, out_features=144, bias=True)
+        (linear_v_points): Linear(in_features=384, out_features=288, bias=True)
+        (linear_b): Linear(in_features=128, out_features=12, bias=True)
+        (linear_out): Linear(in_features=2112, out_features=384, bias=True)
+        (softplus): Softplus(beta=1, threshold=20)
+      )
+      (ipa_dropout): Dropout(p=0.1, inplace=False)
+      (layer_norm_ipa): LayerNorm(torch.Size([384]), eps=1e-05, elementwise_affine=True)
+      (transition): StructureModuleTransition(
+        (layers): 1 X ...
+        StructureModuleTransitionLayer(
+          (linear_1): Linear(in_features=384, out_features=384, bias=True)
+          (linear_2): Linear(in_features=384, out_features=384, bias=True)
+          (act): ReLU()
+          (linear_3): Linear(in_features=384, out_features=384, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (layer_norm): LayerNorm(torch.Size([384]), eps=1e-05, elementwise_affine=True)
+      )
+      (bb_update): BackboneUpdate(
+        (linear): Linear(in_features=384, out_features=6, bias=True)
+      )
+      (angle_resnet): SidechainAngleResnet(
+        (linear_in): Linear(in_features=384, out_features=128, bias=True)
+        (act): ReLU()
+        (linear_initial): Linear(in_features=384, out_features=128, bias=True)
+        (layers): 2 X ...
+        SideChainAngleResnetIteration(
+          (linear_1): Linear(in_features=128, out_features=128, bias=True)
+          (act): ReLU()
+          (linear_2): Linear(in_features=128, out_features=128, bias=True)
+        )
+        (linear_out): Linear(in_features=128, out_features=14, bias=True)
+      )
+    )
+    (aux_heads): AuxiliaryHeads(
+      (plddt): PredictedLDDTHead(
+        (layer_norm): LayerNorm(torch.Size([384]), eps=1e-05, elementwise_affine=True)
+        (linear_1): Linear(in_features=384, out_features=128, bias=True)
+        (linear_2): Linear(in_features=128, out_features=128, bias=True)
+        (act): ReLU()
+        (linear_3): Linear(in_features=128, out_features=50, bias=True)
+      )
+      (distogram): DistogramHead(
+        (layer_norm): None
+        (linear_in): None
+        (act): ReLU()
+        (linear): Linear(in_features=128, out_features=64, bias=True)
+      )
+      (masked_msa): MaskedMSAHead(
+        (layer_norm): None
+        (linear_in): None
+        (act): ReLU()
+        (linear): Linear(in_features=256, out_features=22, bias=True)
+      )
+      (experimentally_resolved): ExperimentallyResolvedHead(
+        (layer_norm): None
+        (linear_in): None
+        (act): ReLU()
+        (linear): Linear(in_features=384, out_features=37, bias=True)
+      )
+      (pae): PredictedAlignedErrorHead(
+        (layer_norm): None
+        (linear_in): None
+        (act): ReLU()
+        (linear): Linear(in_features=128, out_features=64, bias=True)
+      )
+    )
+  )
+)
+2023-05-09 16:34:17 | INFO | unicore_cli.train | task: AlphafoldTask
+2023-05-09 16:34:17 | INFO | unicore_cli.train | model: AlphafoldModel
+2023-05-09 16:34:17 | INFO | unicore_cli.train | loss: AlphafoldMultimerLoss
+2023-05-09 16:34:17 | INFO | unicore_cli.train | num. model params: 93,223,705 (num. trained: 93,223,705)
+2023-05-09 16:34:18 | INFO | unicore.utils | ***********************CUDA enviroments for all 1 workers***********************
+2023-05-09 16:34:18 | INFO | unicore.utils | rank   0: capabilities =  8.0  ; total memory = 39.424 GB ; name = NVIDIA A100-PCIE-40GB                   
+2023-05-09 16:34:18 | INFO | unicore.utils | ***********************CUDA enviroments for all 1 workers***********************
+2023-05-09 16:34:18 | INFO | unicore_cli.train | training on 1 devices (GPUs)
+2023-05-09 16:34:18 | INFO | unicore_cli.train | batch size per device = 1
+2023-05-09 16:34:18 | INFO | unicore.trainer | Preparing to load checkpoint /scratch/gyu/finetune_unifold_multimer_gpu2526/checkpoint_last.pt
+2023-05-09 16:34:20 | INFO | unicore.trainer | Loading EMA state...
+2023-05-09 16:34:21 | INFO | unicore.trainer | Loaded checkpoint /scratch/gyu/finetune_unifold_multimer_gpu2526/checkpoint_last.pt (epoch 1 @ 20 updates)
+2023-05-09 16:34:21 | INFO | unicore.trainer | loading train data for epoch 1
+2023-05-09 16:34:21 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | load 621185 chains (unique 130191 sequences)
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | filtered out 98238 / 180497 PDBs (495995 / 621185 chains) by max_chains 18
+2023-05-09 16:34:23 | INFO | unicore.tasks.unicore_task | get EpochBatchIterator for epoch 1
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 2j42_A sequence_ids is ['2j42_A'] and is 1 long
+2023-05-09 16:34:23 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 418
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(418, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(418, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(418, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(418, 721)] and feats is 1 long
+2023-05-09 16:34:23 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:26 | INFO | unicore.trainer | begin training epoch 1
+2023-05-09 16:34:26 | INFO | unicore_cli.train | Start iterating over samples
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 2ly2_A sequence_ids is ['2ly1_A'] and is 1 long
+2023-05-09 16:34:27 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 838
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1922, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1922, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(838, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(838, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(838, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(838, 180)] and feats is 1 long
+2023-05-09 16:34:27 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 2lpj_A sequence_ids is ['2lpj_A'] and is 1 long
+2023-05-09 16:34:28 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 151
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(303, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(303, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(190, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(190, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(190, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(190, 137)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 5l25_A sequence_ids is ['5l25_A'] and is 1 long
+2023-05-09 16:34:28 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1024
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 652)] and feats is 1 long
+2023-05-09 16:34:28 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 5q38_A sequence_ids is ['5nzw_A'] and is 1 long
+2023-05-09 16:34:32 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1024
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2048, 343)] and feats is 1 long
+2023-05-09 16:34:32 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 4boe_A sequence_ids is ['4boe_A'] and is 1 long
+2023-05-09 16:34:36 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 55
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1181, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1181, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(55, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(55, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(55, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(55, 160)] and feats is 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:36 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 1w7i_A sequence_ids is ['1oe9_A', '1oe9_B'] and is 2 long
+2023-05-09 16:34:37 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:37 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 795)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 795)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 795)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 795)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 151)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 151)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 151)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 151)] and feats is 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 795), (1, 151)] and feats is 2 long
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:37 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 795), (1, 151)] and feats is 2 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 3ms6_A sequence_ids is ['3ms6_A'] and is 1 long
+2023-05-09 16:34:58 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 591
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1375, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1375, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(591, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(591, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(591, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(591, 99)] and feats is 1 long
+2023-05-09 16:34:58 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/dataset.py | label_id is 6w17_F sequence_ids is ['6d8c_N', '6d8c_N', '6d8c_N', '6d8c_N', '6d8c_N', '3dwl_F', '3dwl_C', '3dwl_G', '3dwl_D', '3dwl_A', '6w17_H', '3dwl_E', '6w17_B', '1eqy_A', '1eqy_A', '1eqy_A', '1eqy_A'] and is 17 long
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 0
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 0
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 0
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 0
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 0
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | unifold.data.process_multimer | msa_crop_size_all_seq is 1
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(0, 7), (0, 7), (0, 7), (0, 7), (0, 7)] and feats is 5 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(0, 7), (0, 7), (0, 7), (0, 7), (0, 7)] and feats is 5 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 7), (1, 7), (1, 7), (1, 7), (1, 7)] and feats is 5 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 7), (1, 7), (1, 7), (1, 7), (1, 7)] and feats is 5 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 168)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 168)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 168)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 168)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 377)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 377)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 377)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 377)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 152)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 152)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 152)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 152)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 317)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 317)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 317)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 317)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 427)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 427)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 427)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 427)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 374)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 374)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 374)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 374)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 174)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 174)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 174)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 174)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 390)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 390)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 390)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 390)] and feats is 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | will not concatenate since it's 1 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 377), (2047, 377), (2047, 377), (2047, 377)] and feats is 4 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(2047, 377), (2047, 377), (2047, 377), (2047, 377)] and feats is 4 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 377), (1, 377), (1, 377), (1, 377)] and feats is 4 long
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:34:59 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 377), (1, 377), (1, 377), (1, 377)] and feats is 4 long
+2023-05-09 16:35:00 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging msa_all_seq
+2023-05-09 16:35:00 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 35), (1, 168), (1, 377), (1, 152), (1, 317), (1, 427), (1, 374), (1, 174), (1, 390), (1, 1508)] and feats is 10 long
+2023-05-09 16:35:00 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | currently merging deletion_matrix_all_seq
+2023-05-09 16:35:00 | INFO | /g/kosinski/geoffrey/unifold_review/unifold_classification/Uni-Fold/unifold/data/msa_pairing.py | feats have shape [(1, 35), (1, 168), (1, 377), (1, 152), (1, 317), (1, 427), (1, 374), (1, 174), (1, 390), (1, 1508)] and feats is 10 long
+/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launch.py:180: FutureWarning: The module torch.distributed.launch is deprecated
+and will be removed in future. Use torchrun.
+Note that --use_env is set by default in torchrun.
+If your script expects `--local_rank` argument to be set, please
+change it to read from `os.environ['LOCAL_RANK']` instead. See 
+https://pytorch.org/docs/stable/distributed.html#launch-utility for 
+further instructions
+
+  warnings.warn(
+WARNING:torch.distributed.elastic.agent.server.api:Received 2 death signal, shutting down workers
+WARNING:torch.distributed.elastic.multiprocessing.api:Sending process 50552 closing signal SIGINT
+WARNING:torch.distributed.elastic.multiprocessing.api:Sending process 50552 closing signal SIGTERM
+Traceback (most recent call last):
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/agent/server/api.py", line 709, in run
+    result = self._invoke_run(role)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/agent/server/api.py", line 850, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 62, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 50546 got signal: 2
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/runpy.py", line 192, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launch.py", line 195, in <module>
+    main()
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launch.py", line 191, in main
+    launch(args)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launch.py", line 176, in launch
+    run(args)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/run.py", line 753, in run
+    elastic_launch(
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launcher/api.py", line 132, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/launcher/api.py", line 237, in launch_agent
+    result = agent.run()
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/metrics/api.py", line 129, in wrapper
+    result = f(*args, **kwargs)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/agent/server/api.py", line 716, in run
+    self._shutdown(e.sigval)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/agent/server/local_elastic_agent.py", line 289, in _shutdown
+    self._pcontext.close(death_sig)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 332, in close
+    self._close(death_sig=death_sig, timeout=timeout)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 709, in _close
+    handler.proc.wait(time_to_wait)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/subprocess.py", line 1079, in wait
+    return self._wait(timeout=timeout)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/subprocess.py", line 1798, in _wait
+    time.sleep(delay)
+  File "/home/dingquanyu/.conda/envs/unifold_3.8/lib/python3.8/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 62, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 50546 got signal: 2

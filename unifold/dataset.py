@@ -28,7 +28,7 @@ TorchExample = Tuple[TorchDict, Optional[List[TorchDict]]]
 
 import logging
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__file__)  # pylint: disable=invalid-name
 
 
 def make_data_config(
@@ -250,7 +250,7 @@ class UnifoldDataset(UnicoreDataset):
         json_prefix="",
     ):
         self.path = data_path
-
+        disable_sd = True
         def load_json(filename):
             return json.load(open(filename, "r"))
 
@@ -423,7 +423,7 @@ class UnifoldMultimerDataset(UnifoldDataset):
         self.max_chains = args.max_chains
         if self.mode == "train":
             self.pdb_chains, self.sample_weight = self.filter_pdb_by_max_chains(
-                self.pdb_chains, self.pdb_assembly, self.sample_weight, self.max_chains
+                self.pdb_chains, self.pdb_assembly, self.sample_weight, self.max_chains,self.inverse_multi_label
             )
             self.num_chain, self.chain_keys, self.sample_prob = self.cal_sample_weight(
                 self.sample_weight
@@ -431,6 +431,7 @@ class UnifoldMultimerDataset(UnifoldDataset):
 
     def __getitem__(self, idx):
         seq_id, label_id, is_distillation = self.sample_chain(idx)
+        is_distillation = False
         if is_distillation:
             label_ids = [label_id]
             sequence_ids = [seq_id]
@@ -441,17 +442,13 @@ class UnifoldMultimerDataset(UnifoldDataset):
             )
             symmetry_operations = None
         else:
+            
             pdb_id = self.get_pdb_name(label_id)
             if pdb_id in self.pdb_assembly and self.mode == "train":
-                label_ids = []
-                symmetry_operations = []
-                for cid, op in zip(self.pdb_assembly[pdb_id]["chains"], self.pdb_assembly[pdb_id]["opers"]):
-                    lid = pdb_id + "_" + cid
-                    if lid not in self.inverse_multi_label:
-                        logger.warning(f"sequence id of {lid} cannot be found. chain ignored in the assembly.")
-                    else:
-                        label_ids.append(lid)
-                        symmetry_operations.append(op)
+                label_ids = [
+                    pdb_id + "_" + id for id in self.pdb_assembly[pdb_id]["chains"]
+                ]
+                symmetry_operations = [t for t in self.pdb_assembly[pdb_id]["opers"]]
             else:
                 label_ids = self.pdb_chains[pdb_id]
                 symmetry_operations = None
@@ -510,13 +507,22 @@ class UnifoldMultimerDataset(UnifoldDataset):
         return pdb_chains
 
     @staticmethod
-    def filter_pdb_by_max_chains(pdb_chains, pdb_assembly, sample_weight, max_chains):
+    def filter_pdb_by_max_chains(pdb_chains, pdb_assembly, sample_weight, max_chains,inverse_labels):
+        def list_overlaps(a,b):
+            """check if all chains in one pdb id exist in inversed labels"""
+            for i in a:
+                if i not in b:
+                    return False
+            return True
         new_pdb_chains = {}
         for chain in pdb_chains:
             if chain in pdb_assembly:
                 size = len(pdb_assembly[chain]["chains"])
                 if size <= max_chains:
-                    new_pdb_chains[chain] = pdb_chains[chain]
+                    curr_chains = [f"{chain}_{chain_id}" for chain_id in pdb_assembly[chain]['chains']]
+                    if list_overlaps(curr_chains,inverse_labels.keys()):
+                        new_pdb_chains[chain] = pdb_chains[chain]
+                        new_pdb_chains[chain] = pdb_chains[chain]
             else:
                 size = len(pdb_chains[chain])
                 if size == 1:
