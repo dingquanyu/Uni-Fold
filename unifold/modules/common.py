@@ -201,6 +201,9 @@ def residual(residual, x, training):
     if training:
         return x + residual
     else:
+        # remove the extra dimension if any 
+        if len(x.shape) > len(residual.shape):
+            x = torch.squeeze(x)
         residual += x
         return residual
 
