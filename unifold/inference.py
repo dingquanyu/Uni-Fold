@@ -89,13 +89,15 @@ def config_args(param_path:str,target_name:str,output_dir:str):
         times:int
         output_dir:str
         model_name:str
+        save_raw_output:bool
     
     args = Args(param_path=param_path,
                 model_device="cuda",
                 max_recycling_iters=3,
                 num_ensembles=2,sample_templates=True,
                 target_name=target_name,data_random_seed=42,bf16=True,
-                times=3,output_dir=output_dir,model_name="multimer_af2")
+                times=3,output_dir=output_dir,
+                model_name="multimer_af2",save_raw_output=False)
     return args 
 
 
