@@ -8,7 +8,8 @@ import torch.utils.checkpoint
 
 from unicore.modules import LayerNorm
 from unicore.utils import tensor_tree_map
-
+import logging
+logger = logging.getLogger(__name__)
 
 class Linear(nn.Linear):
     def __init__(
