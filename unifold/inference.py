@@ -16,6 +16,8 @@ from unifold.dataset import load_and_process, UnifoldDataset
 from unicore.utils import (
     tensor_tree_map,
 )
+import logging 
+logger = logging.getLogger(__name__)
 
 def get_device_mem(device):
     if device != "cpu" and torch.cuda.is_available():
@@ -116,6 +118,35 @@ def unifold_config_model(args):
 
     return model
 
+def tree_map(fn, tree, leaf_type):
+    if isinstance(tree, dict):
+        return dict_map(fn, tree, leaf_type)
+    elif isinstance(tree, list):
+        return [tree_map(fn, x, leaf_type) for x in tree]
+    elif isinstance(tree, tuple):
+        return tuple([tree_map(fn, x, leaf_type) for x in tree])
+    elif isinstance(tree, leaf_type):
+        try:
+            return fn(tree)
+        except:
+            raise ValueError(f"cannot apply {fn} on {tree}.")
+    else:
+        raise ValueError(f"{type(tree)} not supported")
+
+def dict_map(fn, dic, leaf_type):
+    new_dict = {}
+    for k, v in dic.items():
+        if type(v) is dict:
+            new_dict[k] = dict_map(fn, v, leaf_type)
+        else:
+            if len(v.shape)>1:
+                new_dict[k] = tree_map(fn, v, leaf_type)
+            else:
+                new_dict[k] = v
+
+    return new_dict
+
+
 def unifold_predict(model,args,batch):
     """
     A function to run inference using unifold weights 
@@ -168,6 +199,10 @@ def unifold_predict(model,args,batch):
         model.globals.block_size = block_size
 
         with torch.no_grad():
+            original_batch = {
+                k: torch.as_tensor(v, device=args.model_device)
+                for k, v in batch.items()
+            }
             batch = {
                 k: torch.as_tensor(v, device=args.model_device)
                 for k, v in batch.items()
@@ -185,36 +220,46 @@ def unifold_predict(model,args,batch):
                 return x
 
         if not args.save_raw_output:
+            logger.info(f"will save raw output")
             score = ["plddt", "ptm", "iptm", "iptm+ptm"]
             out = {
                     k: v for k, v in raw_out.items()
                     if k.startswith("final_") or k in score
                 }
+            for k,v in out.items():
+                logger.info(f"{k} has shape {v.shape}")
         else:
             out = raw_out
         del raw_out
+
+        # check the raw output scores
+        score = ["plddt", "ptm", "iptm", "iptm+ptm"]
+        
         # Toss out the recycling dimensions --- we don't need them anymore
-        batch = tensor_tree_map(lambda t: t[-1, 0, ...], batch)
-        batch = tensor_tree_map(to_float, batch)
-        out = tensor_tree_map(lambda t: t[0, ...], out)
+        # batch = tensor_tree_map(lambda t: t[-1, 0, ...], batch)
+        # batch = tensor_tree_map(to_float, batch)
+        original_batch = tensor_tree_map(to_float, original_batch)
+        # out = dict_map(lambda t: t[0, ...], out,leaf_type=torch.Tensor)
         out = tensor_tree_map(to_float, out)
-        batch = tensor_tree_map(lambda x: np.array(x.cpu()), batch)
+        original_batch = tensor_tree_map(lambda x: np.array(x.cpu()), original_batch)
         out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
 
         plddt = out["plddt"]
         mean_plddt = np.mean(plddt)
+        logger.info(f"mean plddt is {mean_plddt}")
         plddt_b_factors = np.repeat(
             plddt[..., None], residue_constants.atom_type_num, axis=-1
         )
         # TODO: , may need to reorder chains, based on entity_ids
         cur_protein = protein.from_prediction(
-            features=batch, result=out, b_factors=plddt_b_factors
+            features=original_batch, result=out, b_factors=plddt_b_factors
         )
         cur_save_name = (
             f"{args.model_name}_{cur_param_path_postfix}_{cur_seed}{name_postfix}"
         )
         plddts[cur_save_name] = str(mean_plddt)
         if is_multimer:
+            logger.info(f"current multimer model has mean iptm :{np.mean(out['iptm+ptm'])}")
             ptms[cur_save_name] = str(np.mean(out["iptm+ptm"]))
         with open(os.path.join(output_dir, cur_save_name + '.pdb'), "w") as f:
             f.write(protein.to_pdb(cur_protein))
