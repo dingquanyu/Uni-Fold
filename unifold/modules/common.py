@@ -8,7 +8,8 @@ import torch.utils.checkpoint
 
 from unicore.modules import LayerNorm
 from unicore.utils import tensor_tree_map
-
+import logging
+logger = logging.getLogger(__name__)
 
 class Linear(nn.Linear):
     def __init__(
@@ -201,6 +202,9 @@ def residual(residual, x, training):
     if training:
         return x + residual
     else:
+        # remove the extra dimension if any 
+        if len(x.shape) > len(residual.shape):
+            x = torch.squeeze(x)
         residual += x
         return residual
 

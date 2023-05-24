@@ -19,6 +19,8 @@ from typing import Any, Mapping, Optional
 from unifold.data import residue_constants
 from Bio.PDB import PDBParser
 import numpy as np
+import logging 
+logger = logging.getLogger(__name__)
 
 FeatureDict = Mapping[str, np.ndarray]
 ModelOutput = Mapping[str, Any]  # Is a nested dict.
@@ -167,9 +169,12 @@ def to_pdb(prot: Protein) -> str:
 
     atom_mask = prot.atom_mask
     aatype = prot.aatype
+    aatype = aatype[0] # need to get it out of the list
     atom_positions = prot.atom_positions
     residue_index = prot.residue_index.astype(np.int32)
+    residue_index = residue_index[0]
     chain_index = prot.chain_index.astype(np.int32)
+    chain_index = chain_index[0] # it is incorporated in a list with the lenght of 1 somehow. 
     b_factors = prot.b_factors
 
     if np.any(aatype > residue_constants.restype_num):
@@ -201,7 +206,6 @@ def to_pdb(prot: Protein) -> str:
             )
             last_chain_index = chain_index[i]
             atom_index += 1  # Atom index increases at the TER symbol.
-
         res_name_3 = res_1to3(aatype[i])
         for atom_name, pos, mask, b_factor in zip(
             atom_types, atom_positions[i], atom_mask[i], b_factors[i]
@@ -282,7 +286,6 @@ def from_prediction(
 
     if b_factors is None:
         b_factors = np.zeros_like(result["final_atom_mask"])
-
     return Protein(
         aatype=features["aatype"],
         atom_positions=result["final_atom_positions"],

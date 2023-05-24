@@ -16,6 +16,8 @@ from unifold.dataset import load_and_process, UnifoldDataset
 from unicore.utils import (
     tensor_tree_map,
 )
+import logging 
+logger = logging.getLogger(__name__)
 
 def get_device_mem(device):
     if device != "cpu" and torch.cuda.is_available():
@@ -73,6 +75,208 @@ def load_feature_for_one_target(
     batch = UnifoldDataset.collater([batch])
     return batch
 
+def config_args(param_path:str,target_name:str,output_dir:str):
+    """Return a dictionary with all args"""
+    from dataclasses import dataclass
+    @dataclass
+    class Args:
+        param_path: str
+        model_device:str
+        max_recycling_iters:int
+        num_ensembles:int
+        sample_templates:bool
+        target_name:str
+        data_random_seed:int
+        bf16:True
+        times:int
+        output_dir:str
+        model_name:str
+        save_raw_output:bool
+    
+    args = Args(param_path=param_path,
+                model_device="cuda",
+                max_recycling_iters=3,
+                num_ensembles=2,sample_templates=True,
+                target_name=target_name,data_random_seed=42,bf16=True,
+                times=3,output_dir=output_dir,
+                model_name="multimer_af2",save_raw_output=False)
+    return args 
+
+
+def unifold_config_model(args):
+    """Load model and parameters of Unifold"""
+    config = model_config(args.model_name)
+    config.data.common.max_recycling_iters = args.max_recycling_iters
+    config.globals.max_recycling_iters = args.max_recycling_iters
+    config.data.predict.num_ensembles = args.num_ensembles
+    config.model.is_multimer = True
+    is_multimer = config.model.is_multimer
+    if args.sample_templates:
+        # enable template samples for diversity
+        config.data.predict.subsample_templates = True
+    model = AlphaFold(config)
+
+    return model
+
+def tree_map(fn, tree, leaf_type):
+    if isinstance(tree, dict):
+        return dict_map(fn, tree, leaf_type)
+    elif isinstance(tree, list):
+        return [tree_map(fn, x, leaf_type) for x in tree]
+    elif isinstance(tree, tuple):
+        return tuple([tree_map(fn, x, leaf_type) for x in tree])
+    elif isinstance(tree, leaf_type):
+        try:
+            return fn(tree)
+        except:
+            raise ValueError(f"cannot apply {fn} on {tree}.")
+    else:
+        raise ValueError(f"{type(tree)} not supported")
+
+def dict_map(fn, dic, leaf_type):
+    new_dict = {}
+    for k, v in dic.items():
+        if type(v) is dict:
+            new_dict[k] = dict_map(fn, v, leaf_type)
+        else:
+            if len(v.shape)>1:
+                new_dict[k] = tree_map(fn, v, leaf_type)
+            else:
+                new_dict[k] = v
+
+    return new_dict
+
+
+def unifold_predict(model,args,batch):
+    """
+    A function to run inference using unifold weights 
+
+    Args
+    model: AlphaFold() object 
+    args: a dictionary governs the args
+    batch: feature_dict from MultimericObjects from AlphaPulldown
+    """
+    is_multimer = True
+    print("start to load params {}".format(args.param_path))
+    state_dict = torch.load(args.param_path)["ema"]["params"]
+    state_dict = {".".join(k.split(".")[1:]): v for k, v in state_dict.items()}
+    model.load_state_dict(state_dict)
+    model = model.to(args.model_device)
+    model.eval()
+    model.inference_mode()
+    if args.bf16:
+        model.bfloat16()
+
+    # data path is based on target_name
+    output_dir = os.path.join(args.output_dir, args.target_name)
+    os.system("mkdir -p {}".format(output_dir))
+    cur_param_path_postfix = os.path.split(args.param_path)[-1]
+    name_postfix = ""
+    if args.sample_templates:
+        name_postfix += "_st"
+    if not is_multimer and args.use_uniprot:
+        name_postfix += "_uni"
+    if args.max_recycling_iters != 3:
+        name_postfix += "_r" + str(args.max_recycling_iters)
+    if args.num_ensembles != 2:
+        name_postfix += "_e" + str(args.num_ensembles)
+
+    print("start to predict {}".format(args.target_name))
+    plddts = {}
+    ptms = {}
+    for seed in range(args.times):
+        # args.times is by default 3
+        cur_seed = hash((args.data_random_seed, seed)) % 100000
+        
+        seq_len = batch["aatype"].shape[-1]
+        # faster prediction with large chunk/block size
+        chunk_size, block_size = automatic_chunk_size(
+                                    seq_len,
+                                    args.model_device,
+                                    args.bf16
+                                )
+        model.globals.chunk_size = chunk_size
+        model.globals.block_size = block_size
+
+        with torch.no_grad():
+            original_batch = {
+                k: torch.as_tensor(v, device=args.model_device)
+                for k, v in batch.items()
+            }
+            batch = {
+                k: torch.as_tensor(v, device=args.model_device)
+                for k, v in batch.items()
+            }
+            shapes = {k: v.shape for k, v in batch.items()}
+            print(shapes)
+            t = time.perf_counter()
+            raw_out = model(batch)
+            print(f"Inference time: {time.perf_counter() - t}")
+
+        def to_float(x):
+            if x.dtype == torch.bfloat16 or x.dtype == torch.half:
+                return x.float()
+            else:
+                return x
+
+        if not args.save_raw_output:
+            logger.info(f"will save raw output")
+            score = ["plddt", "ptm", "iptm", "iptm+ptm"]
+            out = {
+                    k: v for k, v in raw_out.items()
+                    if k.startswith("final_") or k in score
+                }
+            for k,v in out.items():
+                logger.info(f"{k} has shape {v.shape}")
+        else:
+            out = raw_out
+        del raw_out
+
+        # check the raw output scores
+        score = ["plddt", "ptm", "iptm", "iptm+ptm"]
+        
+        # Toss out the recycling dimensions --- we don't need them anymore
+        # batch = tensor_tree_map(lambda t: t[-1, 0, ...], batch)
+        # batch = tensor_tree_map(to_float, batch)
+        original_batch = tensor_tree_map(to_float, original_batch)
+        # out = dict_map(lambda t: t[0, ...], out,leaf_type=torch.Tensor)
+        out = tensor_tree_map(to_float, out)
+        original_batch = tensor_tree_map(lambda x: np.array(x.cpu()), original_batch)
+        out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
+
+        plddt = out["plddt"]
+        mean_plddt = np.mean(plddt)
+        logger.info(f"mean plddt is {mean_plddt}")
+        plddt_b_factors = np.repeat(
+            plddt[..., None], residue_constants.atom_type_num, axis=-1
+        )
+        # TODO: , may need to reorder chains, based on entity_ids
+        cur_protein = protein.from_prediction(
+            features=original_batch, result=out, b_factors=plddt_b_factors
+        )
+        cur_save_name = (
+            f"{args.model_name}_{cur_param_path_postfix}_{cur_seed}{name_postfix}"
+        )
+        plddts[cur_save_name] = str(mean_plddt)
+        if is_multimer:
+            logger.info(f"current multimer model has mean iptm :{np.mean(out['iptm+ptm'])}")
+            ptms[cur_save_name] = str(np.mean(out["iptm+ptm"]))
+        with open(os.path.join(output_dir, cur_save_name + '.pdb'), "w") as f:
+            f.write(protein.to_pdb(cur_protein))
+        if args.save_raw_output:
+            with gzip.open(os.path.join(output_dir, cur_save_name + '_outputs.pkl.gz'), 'wb') as f:
+                pickle.dump(out, f)
+        del out
+
+    print("plddts", plddts)
+    score_name = f"{args.model_name}_{cur_param_path_postfix}_{args.data_random_seed}_{args.times}{name_postfix}"
+    plddt_fname = score_name + "_plddt.json"
+    json.dump(plddts, open(os.path.join(output_dir, plddt_fname), "w"), indent=4)
+    if ptms:
+        print("ptms", ptms)
+        ptm_fname = score_name + "_ptm.json"
+        json.dump(ptms, open(os.path.join(output_dir, ptm_fname), "w"), indent=4)
+
 
 def main(args):
     config = model_config(args.model_name)
@@ -114,6 +318,7 @@ def main(args):
     plddts = {}
     ptms = {}
     for seed in range(args.times):
+        # args.times is by default 3
         cur_seed = hash((args.data_random_seed, seed)) % 100000
         batch = load_feature_for_one_target(
             config,

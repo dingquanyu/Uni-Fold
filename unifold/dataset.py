@@ -170,7 +170,7 @@ def load(
 
 
 def process(
-    config: mlc.ConfigDict,
+    config,
     mode: str,
     features: NumpyDict,
     labels: Optional[List[NumpyDict]] = None,
@@ -200,8 +200,55 @@ def process(
 
     if labels is not None:
         features["resolution"] = labels[0]["resolution"].reshape(-1)
-
     with data_utils.numpy_seed(seed, data_idx, key="protein_feature"):
+        features["crop_and_fix_size_seed"] = np.random.randint(0, 63355)
+        features = utils.filter(features, desired_keys=feature_names)
+        features = {k: torch.tensor(v) for k, v in features.items()}
+        with torch.no_grad():
+            features = process_features(features, cfg.common, cfg[mode])
+
+    if labels is not None:
+        labels = [{k: torch.tensor(v) for k, v in l.items()} for l in labels]
+        with torch.no_grad():
+            labels = process_labels(labels)
+
+    return features, labels
+
+def process_ap(
+    config,
+    mode: str,
+    features: NumpyDict,
+    labels: Optional[List[NumpyDict]] = None,
+    seed: int = 0,
+    batch_idx: Optional[int] = None,
+    data_idx: Optional[int] = None,
+    is_distillation: bool = False,
+) -> TorchExample:
+
+    if mode == "train":
+        assert batch_idx is not None
+        with data_utils.numpy_seed(seed, batch_idx, key="recycling"):
+            num_iters = np.random.randint(0, config.common.max_recycling_iters + 1)
+            use_clamped_fape = np.random.rand() < config[mode].use_clamped_fape_prob
+    else:
+        num_iters = config.common.max_recycling_iters
+        use_clamped_fape = 1
+
+    features["num_recycling_iters"] = int(num_iters)
+    features["use_clamped_fape"] = int(use_clamped_fape)
+    features["is_distillation"] = int(is_distillation)
+    if is_distillation and "msa_chains" in features:
+        features.pop("msa_chains")
+
+    num_res = int(features["seq_length"])
+    cfg, feature_names = make_data_config(config, mode=mode, num_res=num_res)
+
+    # check assembly_num_chains
+    logger.info(f"assembly_num_chains is : {features['assembly_num_chains']} and type is {type(features['assembly_num_chains'])}")
+    features['assembly_num_chains'] = [2]
+    if labels is not None:
+        features["resolution"] = labels[0]["resolution"].reshape(-1)
+    with data_utils.numpy_seed(seed=42, key="protein_feature"):
         features["crop_and_fix_size_seed"] = np.random.randint(0, 63355)
         features = utils.filter(features, desired_keys=feature_names)
         features = {k: torch.tensor(v) for k, v in features.items()}
