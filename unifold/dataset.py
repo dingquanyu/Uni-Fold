@@ -15,7 +15,7 @@ from unifold.data.process_multimer import (
     post_process,
     merge_msas,
 )
-
+import gzip, pickle
 from unicore.data import UnicoreDataset, data_utils
 from unicore.distributed import utils as distributed_utils
 
@@ -220,9 +220,33 @@ def calculate_offsets(asym_ids):
     seq_lens = [np.sum(asym_ids==u) for u in unique_asym_ids]
     return np.cumsum([0] + seq_lens)
 
-def process_xl_input(features,crosslinks:str = None):
+def create_xl_features(xl_pickle,offsets,**kwargs):
+    """Return a n*3 tensor if there is cross-link information"""
+    descriptions = [kwargs['chain_id_map'][k].description for k in kwargs['chain_id_map']] 
+    results = []
+    for i, chain1 in enumerate(descriptions):
+        for j, chain2 in enumerate(descriptions):
+            links = []
+            if chain1 in xl_pickle:
+                if chain2 in xl_pickle[chain1]:
+                    for start,end,fdr in xl_pickle[chain1][chain2]:
+                        start += offsets[i]
+                        end += offsets[j]
+                        links.append((start,end,fdr))
+                    
+                    if len(links)>0:
+                        links = torch.tensor(links)
+                        results.append(links)
+    
+    return [] if len(results) ==0 else torch.cat(results,dim=0)
 
+
+def process_xl_input(features,**kwargs):
+    """Read in and prepare xl pairs"""
+    xl_pickle = pickle.load(gzip(kwargs['crosslinks'],'rb'))
     offsets = calculate_offsets(features['asym_id'])
+    xl= create_xl_features(xl_pickle,offsets,**kwargs)
+    return xl
 
 def process_ap(
     config,
@@ -231,8 +255,9 @@ def process_ap(
     labels: Optional[List[NumpyDict]] = None,
     seed: int = 0,
     batch_idx: Optional[int] = None,
-    crosslinks: str = None,
     is_distillation: bool = False,
+    crosslinks: str = None,
+    **kwargs
 ) -> TorchExample:
 
     if mode == "train":
@@ -270,8 +295,9 @@ def process_ap(
         with torch.no_grad():
             labels = process_labels(labels)
 
-    # if crosslinks is not None:
-    #     prepare_xl_input()
+    if crosslinks is not None:
+        xl = process_xl_input(features,
+                              crosslinks=crosslinks,chain_id_map=kwargs['chain_id_map'])
 
     return features, labels
 
