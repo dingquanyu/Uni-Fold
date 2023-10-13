@@ -214,6 +214,16 @@ def process(
 
     return features, labels
 
+def calculate_offsets(asym_ids):
+    """A function that calculate the offset when preparing cross link data"""
+    unique_asym_ids = np.unique(asym_ids)
+    seq_lens = [np.sum(asym_ids==u) for u in unique_asym_ids]
+    return np.cumsum([0] + seq_lens)
+
+def process_xl_input(features,crosslinks:str = None):
+
+    offsets = calculate_offsets(features['asym_id'])
+
 def process_ap(
     config,
     mode: str,
@@ -221,7 +231,7 @@ def process_ap(
     labels: Optional[List[NumpyDict]] = None,
     seed: int = 0,
     batch_idx: Optional[int] = None,
-    data_idx: Optional[int] = None,
+    crosslinks: str = None,
     is_distillation: bool = False,
 ) -> TorchExample:
 
@@ -259,6 +269,9 @@ def process_ap(
         labels = [{k: torch.tensor(v) for k, v in l.items()} for l in labels]
         with torch.no_grad():
             labels = process_labels(labels)
+
+    # if crosslinks is not None:
+    #     prepare_xl_input()
 
     return features, labels
 
