@@ -221,7 +221,11 @@ def calculate_offsets(asym_ids):
     return np.cumsum([0] + seq_lens)
 
 def create_xl_features(xl_pickle,offsets,**kwargs):
-    """Return a n*3 tensor if there is cross-link information"""
+    """
+    Return a n*3 tensor if there is cross-link information
+    Adapted from {Kolja Stahl and Oliver Brock and Juri Rappsilber, 2023, Modelling protein complexes with crosslinking mass spectrometry and deep learning
+    https://github.com/Rappsilber-Laboratory/AlphaLink2/blob/b1cc971f6b0606316852e5fc27b0509e1b15490d/unifold/dataset.py#L137
+    """
     descriptions = [kwargs['chain_id_map'][k].description for k in kwargs['chain_id_map']] 
     results = []
     for i, chain1 in enumerate(descriptions):
@@ -247,6 +251,22 @@ def process_xl_input(features,**kwargs):
     offsets = calculate_offsets(features['asym_id'])
     xl= create_xl_features(xl_pickle,offsets,**kwargs)
     return xl
+
+def bin_xl(xl,num_res):
+    """
+    Put each link from the xl tensors to its bin
+    Adapted from {Kolja Stahl and Oliver Brock and Juri Rappsilber, 2023, Modelling protein complexes with crosslinking mass spectrometry and deep learning
+    https://github.com/Rappsilber-Laboratory/AlphaLink2/blob/b1cc971f6b0606316852e5fc27b0509e1b15490d/unifold/dataset.py#L166
+    """
+    bins = torch.arange(0,1.05,0.05)
+    xl = xl[torch.randperm(len(xl))]
+    output = np.zeros((num_res,num_res,1))
+    for i, (r1,r2,fdr) in enumerate(xl):
+        r1 = int(r1.item())
+        r2 = int(r2.item())    
+        output[r1,r2,0] = output[r2,r1,0] = torch.bucketize(1-fdr, bins)
+    
+    return output
 
 def process_ap(
     config,
@@ -298,7 +318,13 @@ def process_ap(
     if crosslinks is not None:
         xl = process_xl_input(features,
                               crosslinks=crosslinks,chain_id_map=kwargs['chain_id_map'])
-
+        
+        if len(xl) == 0:
+            xl = np.zeros((num_res,num_res,1))
+        else:
+            xl = bin_xl(xl,num_res)
+        
+        features['xl'] = torch.tensor(xl)
     return features, labels
 
 
