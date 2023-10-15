@@ -317,7 +317,8 @@ def process_ap(
 
     if crosslinks is not None:
         xl = process_xl_input(features,
-                              crosslinks=crosslinks,chain_id_map=kwargs['chain_id_map'])
+                              crosslinks=crosslinks,
+                              chain_id_map=kwargs['chain_id_map'])
         
         if len(xl) == 0:
             xl = np.zeros((num_res,num_res,1))
