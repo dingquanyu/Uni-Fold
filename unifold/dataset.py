@@ -15,7 +15,7 @@ from unifold.data.process_multimer import (
     post_process,
     merge_msas,
 )
-
+import gzip, pickle
 from unicore.data import UnicoreDataset, data_utils
 from unicore.distributed import utils as distributed_utils
 
@@ -214,6 +214,60 @@ def process(
 
     return features, labels
 
+def calculate_offsets(asym_ids):
+    """A function that calculate the offset when preparing cross link data"""
+    unique_asym_ids = np.unique(asym_ids)
+    seq_lens = [np.sum(asym_ids==u) for u in unique_asym_ids]
+    return np.cumsum([0] + seq_lens)
+
+def create_xl_features(xl_pickle,offsets,**kwargs):
+    """
+    Return a n*3 tensor if there is cross-link information
+    Adapted from {Kolja Stahl and Oliver Brock and Juri Rappsilber, 2023, Modelling protein complexes with crosslinking mass spectrometry and deep learning
+    https://github.com/Rappsilber-Laboratory/AlphaLink2/blob/b1cc971f6b0606316852e5fc27b0509e1b15490d/unifold/dataset.py#L137
+    """
+    descriptions = [kwargs['chain_id_map'][k].description for k in kwargs['chain_id_map']] 
+    results = []
+    for i, chain1 in enumerate(descriptions):
+        for j, chain2 in enumerate(descriptions):
+            links = []
+            if chain1 in xl_pickle:
+                if chain2 in xl_pickle[chain1]:
+                    for start,end,fdr in xl_pickle[chain1][chain2]:
+                        start += offsets[i]
+                        end += offsets[j]
+                        links.append((start,end,fdr))
+                    
+                    if len(links)>0:
+                        links = torch.tensor(links)
+                        results.append(links)
+    
+    return [] if len(results) ==0 else torch.cat(results,dim=0)
+
+
+def process_xl_input(features,**kwargs):
+    """Read in and prepare xl pairs"""
+    xl_pickle = pickle.load(gzip(kwargs['crosslinks'],'rb'))
+    offsets = calculate_offsets(features['asym_id'])
+    xl= create_xl_features(xl_pickle,offsets,**kwargs)
+    return xl
+
+def bin_xl(xl,num_res):
+    """
+    Put each link from the xl tensors to its bin
+    Adapted from {Kolja Stahl and Oliver Brock and Juri Rappsilber, 2023, Modelling protein complexes with crosslinking mass spectrometry and deep learning
+    https://github.com/Rappsilber-Laboratory/AlphaLink2/blob/b1cc971f6b0606316852e5fc27b0509e1b15490d/unifold/dataset.py#L166
+    """
+    bins = torch.arange(0,1.05,0.05)
+    xl = xl[torch.randperm(len(xl))]
+    output = np.zeros((num_res,num_res,1))
+    for i, (r1,r2,fdr) in enumerate(xl):
+        r1 = int(r1.item())
+        r2 = int(r2.item())    
+        output[r1,r2,0] = output[r2,r1,0] = torch.bucketize(1-fdr, bins)
+    
+    return output
+
 def process_ap(
     config,
     mode: str,
@@ -221,8 +275,9 @@ def process_ap(
     labels: Optional[List[NumpyDict]] = None,
     seed: int = 0,
     batch_idx: Optional[int] = None,
-    data_idx: Optional[int] = None,
     is_distillation: bool = False,
+    crosslinks: str = None,
+    **kwargs
 ) -> TorchExample:
 
     if mode == "train":
@@ -260,6 +315,17 @@ def process_ap(
         with torch.no_grad():
             labels = process_labels(labels)
 
+    if crosslinks is not None:
+        xl = process_xl_input(features,
+                              crosslinks=crosslinks,
+                              chain_id_map=kwargs['chain_id_map'])
+        
+        if len(xl) == 0:
+            xl = np.zeros((num_res,num_res,1))
+        else:
+            xl = bin_xl(xl,num_res)
+        
+        features['xl'] = torch.tensor(xl)
     return features, labels
 
 
