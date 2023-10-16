@@ -12,6 +12,8 @@ from unicore.tasks import UnicoreTask, register_task
 
 logger = logging.getLogger(__name__)
 
+import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 @register_task("af2")
 class AlphafoldTask(UnicoreTask):
@@ -89,4 +91,4 @@ class AlphafoldTask(UnicoreTask):
         return model
 
     def disable_shuffling(self) -> bool:
-        return True
+        return False #True

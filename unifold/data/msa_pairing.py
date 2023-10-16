@@ -22,8 +22,6 @@ from .data_ops import NumpyDict
 import numpy as np
 import pandas as pd
 import scipy.linalg
-import logging
-logger = logging.getLogger(__file__)
 
 
 MSA_GAP_IDX = restypes_with_x_and_gap.index("-")
@@ -90,7 +88,7 @@ def create_paired_features(
         return chains
     else:
         updated_chains = []
-        paired_chains_to_paired_row_indices = pair_sequences_modified(chains)
+        paired_chains_to_paired_row_indices = pair_sequences(chains)
         paired_rows = reorder_paired_rows(paired_chains_to_paired_row_indices)
 
         for chain_num, chain in enumerate(chains):
@@ -205,63 +203,6 @@ def _match_rows_by_sequence_similarity(
     all_paired_msa_rows = list(np.array(all_paired_msa_rows).transpose())
     return all_paired_msa_rows
 
-
-def pair_sequences_modified(examples: List[NumpyDict]) -> Dict[int, np.ndarray]:
-    """Returns indices for paired MSA sequences across chains."""
-
-    num_examples = len(examples)
-
-    all_chain_species_dict = []
-    common_species = set()
-    # for chain_features in examples:
-    #     msa_df = _make_msa_df(chain_features)
-    #     species_dict = _create_species_dict(msa_df)
-    #     all_chain_species_dict.append(species_dict)
-    #     common_species.update(set(species_dict))
-
-    # common_species = sorted(common_species)
-    # common_species.remove(b"")  # Remove target sequence species.
-
-    all_paired_msa_rows = [np.zeros(len(examples), int)]
-    all_paired_msa_rows_dict = {k: [] for k in range(num_examples)}
-    all_paired_msa_rows_dict[num_examples] = [np.zeros(len(examples), int)]
-
-    for species in common_species:
-        if not species:
-            continue
-        this_species_msa_dfs = []
-        species_dfs_present = 0
-        for species_dict in all_chain_species_dict:
-            if species in species_dict:
-                this_species_msa_dfs.append(species_dict[species])
-                species_dfs_present += 1
-            else:
-                this_species_msa_dfs.append(None)
-
-        # Skip species that are present in only one chain.
-        if species_dfs_present <= 1:
-            continue
-
-        if np.any(
-            np.array(
-                [
-                    len(species_df)
-                    for species_df in this_species_msa_dfs
-                    if isinstance(species_df, pd.DataFrame)
-                ]
-            )
-            > 600
-        ):
-            continue
-
-        paired_msa_rows = _match_rows_by_sequence_similarity(this_species_msa_dfs)
-        all_paired_msa_rows.extend(paired_msa_rows)
-        all_paired_msa_rows_dict[species_dfs_present].extend(paired_msa_rows)
-    all_paired_msa_rows_dict = {
-        num_examples: np.array(paired_msa_rows)
-        for num_examples, paired_msa_rows in all_paired_msa_rows_dict.items()
-    }
-    return all_paired_msa_rows_dict
 
 def pair_sequences(examples: List[NumpyDict]) -> Dict[int, np.ndarray]:
     """Returns indices for paired MSA sequences across chains."""
@@ -443,10 +384,7 @@ def _merge_features_from_multiple_chains(
         feature_name_split = feature_name.split("_all_seq")[0]
         if feature_name_split in MSA_FEATURES:
             if pair_msa_sequences or "_all_seq" in feature_name:
-                if len(feats)>1:
-                    merged_example[feature_name] = np.concatenate(feats, axis=1)
-                else:
-                    merged_example[feature_name] = feats[0]
+                merged_example[feature_name] = np.concatenate(feats, axis=1)
                 if feature_name_split == "msa":
                     merged_example["msa_chains_all_seq"] = np.ones(
                         merged_example[feature_name].shape[0]

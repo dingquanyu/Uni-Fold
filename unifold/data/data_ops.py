@@ -1356,6 +1356,11 @@ def get_spatial_crop_idx(
         ca_distances, protein["asym_id"], pair_mask, ca_ca_threshold
     )
 
+    #interface_candidates = get_xl_interface_candidates(
+    #    protein["xl"], protein["asym_id"], pair_mask
+    #)
+
+
     if torch.any(interface_candidates):
         with data_utils.numpy_seed(random_seed, key="multimer_spatial_crop"):
             target_res = int(np.random.choice(interface_candidates))
@@ -1393,6 +1398,24 @@ def get_interface_candidates(
     ca_distances = ca_distances * (1.0 - in_same_asym.float()) * pair_mask
     cnt_interfaces = torch.sum(
         (ca_distances > 0) & (ca_distances < ca_ca_threshold), dim=-1
+    )
+    interface_candidates = cnt_interfaces.nonzero(as_tuple=True)[0]
+    return interface_candidates
+
+
+def get_xl_interface_candidates(
+    xl: torch.Tensor,
+    asym_id: torch.Tensor,
+    pair_mask: torch.Tensor,
+) -> torch.Tensor:
+
+    in_same_asym = asym_id[..., None] == asym_id[..., None, :]
+    # set distance in the same entity to zero
+    xl = (xl > 0).long()
+
+    xl = xl * (1.0 - in_same_asym.float()) * pair_mask
+    cnt_interfaces = torch.sum(
+        xl > 0, dim=-1
     )
     interface_candidates = cnt_interfaces.nonzero(as_tuple=True)[0]
     return interface_candidates

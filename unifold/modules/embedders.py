@@ -280,3 +280,18 @@ class ExtraMSAEmbedder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.linear(x.type(self.linear.weight.dtype))
+
+class XLEmbedder(nn.Module):
+    def __init__(
+        self,
+        d_pair: int,
+        **kwargs,
+    ):
+        super(XLEmbedder, self).__init__()
+
+        self.d_pair = d_pair
+        self.d_in = 1
+        self.linear = Linear(self.d_in, self.d_pair)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.linear(x.type(self.linear.weight.dtype))

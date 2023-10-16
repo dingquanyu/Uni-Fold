@@ -12,20 +12,16 @@ from unifold.config import model_config
 from unifold.modules.alphafold import AlphaFold
 from unifold.data import protein, residue_constants
 from unifold.colab.data import load_feature_for_one_target
-from unifold.symmetry import (
-    UFSymmetry,
-    uf_symmetry_config,
-    assembly_from_prediction,
-)
 from unifold.inference import automatic_chunk_size
 
+from unifold.data.data_ops import get_pairwise_distances
+from unifold.data import residue_constants as rc
 
 def colab_inference(
     target_id: str,
     data_dir: str,
     param_dir: str,
     output_dir: str,
-    symmetry_group: Optional[str],
     is_multimer: bool,
     max_recycling_iters: int,
     num_ensembles: int,
@@ -34,20 +30,10 @@ def colab_inference(
     device: str = "cuda:0",
 ):
 
-    if symmetry_group is not None:
-        model_name = "uf_symmetry"
-        param_path = os.path.join(param_dir, "uf_symmetry.pt")
-    elif is_multimer:
-        model_name = "multimer_ft"
-        param_path = os.path.join(param_dir, "multimer.unifold.pt")
-    else:
-        model_name = "model_2_ft"
-        param_path = os.path.join(param_dir, "monomer.unifold.pt")
+    model_name = "multimer_af2_crop"
+    param_path = os.path.join(param_dir, "alphalink_weights.pt")
 
-    if symmetry_group is None:
-        config = model_config(model_name)
-    else:
-        config = uf_symmetry_config()
+    config = model_config(model_name)
         
     config.data.common.max_recycling_iters = max_recycling_iters
     config.globals.max_recycling_iters = max_recycling_iters
@@ -55,7 +41,7 @@ def colab_inference(
 
     # faster prediction with large chunk
     config.globals.chunk_size = 128
-    model = AlphaFold(config) if symmetry_group is None else UFSymmetry(config)
+    model = AlphaFold(config)
     print("start to load params {}".format(param_path))
     state_dict = torch.load(param_path)["ema"]["params"]
     state_dict = {".".join(k.split(".")[1:]): v for k, v in state_dict.items()}
@@ -81,7 +67,7 @@ def colab_inference(
             cur_seed,
             is_multimer=is_multimer,
             use_uniprot=is_multimer,
-            symmetry_group=symmetry_group,
+            symmetry_group=None,
         )
         seq_len = batch["aatype"].shape[-1]
         chunk_size, block_size = automatic_chunk_size(
@@ -91,6 +77,8 @@ def colab_inference(
                                 )
         model.globals.chunk_size = chunk_size
         model.globals.block_size = block_size
+
+        print("using %d crosslink(s)" %(torch.sum((batch['xl'] > 0) / 2)))
 
         with torch.no_grad():
             batch = {
@@ -123,32 +111,29 @@ def colab_inference(
             plddt[..., None], residue_constants.atom_type_num, axis=-1
         )
         # TODO: , may need to reorder chains, based on entity_ids
-        if symmetry_group is None:
-            cur_protein = protein.from_prediction(
-                features=batch, result=out, b_factors=plddt_b_factors
-            )
-        else:
-            plddt_b_factors_assembly = np.concatenate(
-                [plddt_b_factors for _ in range(batch["symmetry_opers"].shape[0])])
-            cur_protein = assembly_from_prediction(
-                result=out, b_factors=plddt_b_factors_assembly,
-            )
+        cur_protein = protein.from_prediction(
+            features=batch, result=out, b_factors=plddt_b_factors
+        )
+
         cur_save_name = (
             f"{cur_param_path_postfix}_{cur_seed}"
         )
         plddts[cur_save_name] = str(mean_plddt)
-        if is_multimer and symmetry_group is None:
+        if is_multimer:
             ptms[cur_save_name] = str(np.mean(out["iptm+ptm"]))
         with open(os.path.join(output_dir, cur_save_name + '.pdb'), "w") as f:
             f.write(protein.to_pdb(cur_protein))
 
-        if is_multimer and symmetry_group is None:
+        if is_multimer:
             mean_ptm = np.mean(out["iptm+ptm"])
             if mean_ptm>best_score:
                 best_result = {
                     "protein": cur_protein,
                     "plddt": out["plddt"],
-                    "pae": out["predicted_aligned_error"]
+                    "pae": out["predicted_aligned_error"],
+                    "ptm": out["ptm"],
+                    "iptm": out["iptm"],
+                    "model_confidence": mean_ptm
                 }
         else:
             if mean_plddt>best_score:
@@ -166,5 +151,16 @@ def colab_inference(
         print("ptms", ptms)
         ptm_fname = score_name + "_ptm.json"
         json.dump(ptms, open(os.path.join(output_dir, ptm_fname), "w"), indent=4)
+
+
+
+    ca_idx = rc.atom_order["CA"]
+    ca_coords = torch.from_numpy(out["final_atom_positions"][..., ca_idx, :])
+
+    distances = get_pairwise_distances(ca_coords)
+
+    xl = batch['xl'][...,0] > 0
+
+    best_result['xl'] = [(i.item(),j.item(),distances[i,j].item()) for i,j in torch.nonzero(torch.from_numpy(xl)) if i < j ]
     
     return best_result

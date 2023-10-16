@@ -8,6 +8,53 @@ from unifold.msa.utils import divide_multi_chains
 from unifold.dataset import load_and_process, UnifoldDataset
 from unifold.symmetry import load_and_process_symmetry
 
+import numpy as np
+from Bio import SeqIO
+import re
+import random
+import hashlib
+
+def load_crosslinks(fname):
+  links = np.loadtxt(fname,dtype=str)
+
+  if len(links.shape) == 1:
+      links = np.array([links])
+
+  crosslinks = {}
+
+  for i,chain1,j,chain2,fdr in links:
+      i = int(i)
+      j = int(j)
+      fdr = float(fdr)
+      if not chain1 in crosslinks:
+          crosslinks[chain1] = {}
+      if not chain2 in crosslinks[chain1]:
+          crosslinks[chain1][chain2] = []
+
+      crosslinks[chain1][chain2].append((i-1,j-1,fdr))
+
+  return crosslinks
+
+
+def load_fasta(fname,jobname):
+  def add_hash(x,y):
+      return x+"_"+hashlib.sha1(y.encode()).hexdigest()[:5]
+
+  input_sequences = []
+  descriptions = []
+  for seq in SeqIO.parse(fname, 'fasta'):
+      input_sequences.append(str(seq.seq))
+      descriptions.append(seq.description)
+
+  basejobname = "".join(input_sequences)
+  basejobname = re.sub(r'\W+', '', basejobname)
+  target_id = add_hash(jobname, basejobname)
+
+  descriptions = ['>'+target_id+' chain '+d for d in descriptions]
+
+  return input_sequences, descriptions
+
+
 
 def clean_and_validate_sequence(
     input_sequence: str, min_length: int, max_length: int) -> str:
@@ -95,31 +142,18 @@ def load_feature_for_one_target(
         uniprot_msa_dir = data_folder
         sequence_ids = open(os.path.join(data_folder, "chains.txt")).readline().split()
     
-    if symmetry_group is None:
-        batch, _ = load_and_process(
-            config=config.data,
-            mode="predict",
-            seed=seed,
-            batch_idx=None,
-            data_idx=0,
-            is_distillation=False,
-            sequence_ids=sequence_ids,
-            monomer_feature_dir=data_folder,
-            uniprot_msa_dir=uniprot_msa_dir,
-        )
-    
-    else:
-        batch, _ = load_and_process_symmetry(
-            config=config.data,
-            mode="predict",
-            seed=seed,
-            batch_idx=None,
-            data_idx=0,
-            is_distillation=False,
-            symmetry=symmetry_group,
-            sequence_ids=sequence_ids,
-            monomer_feature_dir=data_folder,
-            uniprot_msa_dir=uniprot_msa_dir,
-        )
+    batch, _ = load_and_process(
+        config=config.data,
+        mode="predict",
+        seed=seed,
+        batch_idx=None,
+        data_idx=0,
+        is_distillation=False,
+        crosslinks='crosslinks.pkl.gz',
+        sequence_ids=sequence_ids,
+        monomer_feature_dir=data_folder,
+        uniprot_msa_dir=uniprot_msa_dir,
+    )
+
     batch = UnifoldDataset.collater([batch])
     return batch
