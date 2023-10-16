@@ -15,7 +15,7 @@ d_template = mlc.FieldReference(64, field_type=int)
 d_extra_msa = mlc.FieldReference(64, field_type=int)
 d_single = mlc.FieldReference(384, field_type=int)
 max_recycling_iters = mlc.FieldReference(3, field_type=int)
-chunk_size = mlc.FieldReference(4, field_type=int)
+chunk_size = mlc.FieldReference(64, field_type=int)
 aux_distogram_bins = mlc.FieldReference(64, field_type=int)
 eps = mlc.FieldReference(1e-8, field_type=float)
 inf = mlc.FieldReference(3e4, field_type=float)
@@ -96,6 +96,7 @@ def base_config():
                         "num_sym": [N_RES],
                         "asym_len": [None],
                         "cluster_bias_mask": [N_MSA],
+                        "xl": [N_RES, N_RES, None],
                     },
                     "masked_msa": {
                         "profile_prob": 0.1,
@@ -134,6 +135,8 @@ def base_config():
                         "deletion_matrix",
                         "num_recycling_iters",
                         "crop_and_fix_size_seed",
+                        "xl",
+                        "real",
                     ],
                     "recycling_features": [
                         "msa_chains",
@@ -177,7 +180,7 @@ def base_config():
                     "fixed_size": True,
                     "subsample_templates": False,
                     "block_delete_msa": False,
-                    "random_delete_msa": True,
+                    "random_delete_msa": False,
                     "masked_msa_replace_fraction": 0.15,
                     "max_msa_clusters": 128,
                     "max_templates": 4,
@@ -192,7 +195,7 @@ def base_config():
                     "fixed_size": True,
                     "subsample_templates": False,
                     "block_delete_msa": False,
-                    "random_delete_msa": True,
+                    "random_delete_msa": False,
                     "masked_msa_replace_fraction": 0.15,
                     "max_msa_clusters": 128,
                     "max_templates": 4,
@@ -208,8 +211,8 @@ def base_config():
                 "train": {
                     "fixed_size": True,
                     "subsample_templates": True,
-                    "block_delete_msa": True,
-                    "random_delete_msa": True,
+                    "block_delete_msa": False,
+                    "random_delete_msa": False,
                     "masked_msa_replace_fraction": 0.15,
                     "max_msa_clusters": 128,
                     "max_templates": 4,
@@ -221,7 +224,7 @@ def base_config():
                     "supervised": True,
                     "use_clamped_fape_prob": 1.0,
                     "max_distillation_msa_clusters": 1000,
-                    "biased_msa_by_chain": True,
+                    "biased_msa_by_chain": False,
                     "share_mask": True,
                 },
             },
@@ -237,9 +240,13 @@ def base_config():
                 "inf": inf,
                 "max_recycling_iters": max_recycling_iters,
                 "alphafold_original_mode": False,
+                "use_flash_attn": True,
             },
             "model": {
                 "is_multimer": is_multimer,
+                "xl_embedder": {
+                    "d_pair": d_pair,
+                },
                 "input_embedder": {
                     "tf_dim": 22,
                     "msa_dim": 49,
@@ -572,7 +579,8 @@ def model_config(name, train=False):
         recursive_set(c, "use_template_torsion_angles", False)
     elif name == "model_5_af2":
         recursive_set(c, "max_extra_msa", 1024)
-        recursive_set(c, "max_msa_clusters", 512)
+        # recursive_set(c, "max_msa_clusters", 512)
+        recursive_set(c, "max_msa_clusters", 256)
         c.data.train.crop_size = 384
         c.loss.violation.weight = 0.02
         c.loss.repr_norm.weight = 0
@@ -583,15 +591,83 @@ def model_config(name, train=False):
         c.model.template.embed_angles = False
         recursive_set(c, "use_templates", False)
         recursive_set(c, "use_template_torsion_angles", False)
+    elif name == "model_5_ptm_af2":
+        recursive_set(c, "max_extra_msa", 1024)
+        # recursive_set(c, "max_msa_clusters", 512)
+        recursive_set(c, "max_msa_clusters", 256)
+        c.data.train.crop_size = 384
+        c.loss.violation.weight = 0.02
+        c.loss.repr_norm.weight = 0
+        c.model.heads.experimentally_resolved.enabled = True
+        c.loss.experimentally_resolved.weight = 0.01
+        c.globals.alphafold_original_mode = True
+        c.model.heads.pae.enabled = True
+        c.model.heads.pae.iptm_weight = 0.0
+        c.loss.pae.weight = 0.1
+        c.model.template.enabled = False
+        c.model.template.embed_angles = False
+        recursive_set(c, "use_templates", False)
+        recursive_set(c, "use_template_torsion_angles", False)
     elif name == "multimer":
         c = multimer(c)
     elif name == "multimer_ft":
         c = multimer(c)
-        recursive_set(c, "max_extra_msa", 1152)
+#        recursive_set(c, "max_extra_msa", 1152)
+        recursive_set(c, "max_extra_msa", 1024)
         recursive_set(c, "max_msa_clusters", 256)
         c.data.train.crop_size = 384
         c.loss.violation.weight = 0.5
     elif name == "multimer_af2":
+        recursive_set(c, "max_extra_msa", 512)
+#        recursive_set(c, "max_extra_msa", 1152)
+        recursive_set(c, "max_msa_clusters", 256)
+        recursive_set(c, "is_multimer", True)
+        recursive_set(c, "v2_feature", True)
+        recursive_set(c, "gumbel_sample", True)
+        c.model.template.template_angle_embedder.d_in = 34
+        c.model.template.template_pair_stack.tri_attn_first = False
+        c.model.template.template_pointwise_attention.enabled = False
+        c.model.heads.pae.enabled = True
+        c.model.heads.experimentally_resolved.enabled = True
+        c.model.heads.masked_msa.d_out = 22
+        c.model.structure_module.separate_kv = True
+        c.model.structure_module.ipa_bias = False
+        c.model.structure_module.trans_scale_factor = 20
+        c.loss.pae.weight = 0.1
+        c.loss.violation.weight = 0.5
+        c.loss.experimentally_resolved.weight = 0.01
+        c.model.input_embedder.tf_dim = 21
+        c.globals.alphafold_original_mode = True
+        c.data.train.crop_size = 384
+        c.loss.repr_norm.weight = 0
+        c.loss.chain_centre_mass.weight = 1.0
+        recursive_set(c, "outer_product_mean_first", True)
+    elif name == "multimer_af2_crop":
+#        recursive_set(c, "max_extra_msa", 512)
+        recursive_set(c, "max_extra_msa", 1152)
+        recursive_set(c, "max_msa_clusters", 512)
+        recursive_set(c, "is_multimer", True)
+        recursive_set(c, "v2_feature", True)
+        recursive_set(c, "gumbel_sample", True)
+        c.model.template.template_angle_embedder.d_in = 34
+        c.model.template.template_pair_stack.tri_attn_first = False
+        c.model.template.template_pointwise_attention.enabled = False
+        c.model.heads.pae.enabled = True
+        c.model.heads.experimentally_resolved.enabled = True
+        c.model.heads.masked_msa.d_out = 22
+        c.model.structure_module.separate_kv = True
+        c.model.structure_module.ipa_bias = False
+        c.model.structure_module.trans_scale_factor = 20
+        c.loss.pae.weight = 0.1
+        c.loss.violation.weight = 0.5
+        c.loss.experimentally_resolved.weight = 0.01
+        c.model.input_embedder.tf_dim = 21
+        c.globals.alphafold_original_mode = True
+        c.data.train.crop_size = 640 #768
+        c.loss.repr_norm.weight = 0
+        c.loss.chain_centre_mass.weight = 1.0
+        recursive_set(c, "outer_product_mean_first", True)
+    elif name == "multimer_5_af2":
         recursive_set(c, "max_extra_msa", 1152)
         recursive_set(c, "max_msa_clusters", 256)
         recursive_set(c, "is_multimer", True)
@@ -615,54 +691,10 @@ def model_config(name, train=False):
         c.loss.repr_norm.weight = 0
         c.loss.chain_centre_mass.weight = 1.0
         recursive_set(c, "outer_product_mean_first", True)
-    elif name == "multimer_af2_v3":
-        recursive_set(c, "max_extra_msa", 2048)
-        recursive_set(c, "max_msa_clusters", 512)
-        recursive_set(c, "is_multimer", True)
-        recursive_set(c, "v2_feature", True)
-        recursive_set(c, "gumbel_sample", True)
-        c.model.template.template_angle_embedder.d_in = 34
-        c.model.template.template_pair_stack.tri_attn_first = False
-        c.model.template.template_pointwise_attention.enabled = False
-        c.model.heads.pae.enabled = True
-        c.model.heads.experimentally_resolved.enabled = True
-        c.model.heads.masked_msa.d_out = 22
-        c.model.structure_module.separate_kv = True
-        c.model.structure_module.ipa_bias = False
-        c.model.structure_module.trans_scale_factor = 20
-        c.loss.pae.weight = 0.1
-        c.loss.violation.weight = 0.5
-        c.loss.experimentally_resolved.weight = 0.01
-        c.model.input_embedder.tf_dim = 21
-        c.globals.alphafold_original_mode = True
-        c.data.train.crop_size = 384
-        c.loss.repr_norm.weight = 0
-        c.loss.chain_centre_mass.weight = 1.0
-        recursive_set(c, "outer_product_mean_first", True)
-    elif name == "multimer_af2_model45_v3":
-        recursive_set(c, "max_extra_msa", 1152)
-        recursive_set(c, "max_msa_clusters", 512)
-        recursive_set(c, "is_multimer", True)
-        recursive_set(c, "v2_feature", True)
-        recursive_set(c, "gumbel_sample", True)
-        c.model.template.template_angle_embedder.d_in = 34
-        c.model.template.template_pair_stack.tri_attn_first = False
-        c.model.template.template_pointwise_attention.enabled = False
-        c.model.heads.pae.enabled = True
-        c.model.heads.experimentally_resolved.enabled = True
-        c.model.heads.masked_msa.d_out = 22
-        c.model.structure_module.separate_kv = True
-        c.model.structure_module.ipa_bias = False
-        c.model.structure_module.trans_scale_factor = 20
-        c.loss.pae.weight = 0.1
-        c.loss.violation.weight = 0.5
-        c.loss.experimentally_resolved.weight = 0.01
-        c.model.input_embedder.tf_dim = 21
-        c.globals.alphafold_original_mode = True
-        c.data.train.crop_size = 384
-        c.loss.repr_norm.weight = 0
-        c.loss.chain_centre_mass.weight = 1.0
-        recursive_set(c, "outer_product_mean_first", True)
+        c.model.template.enabled = False
+        c.model.template.embed_angles = False
+        recursive_set(c, "use_templates", False)
+        recursive_set(c, "use_template_torsion_angles", False)
     else:
         raise ValueError(f"invalid --model-name: {name}.")
     if train:

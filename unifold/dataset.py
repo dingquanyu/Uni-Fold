@@ -216,6 +216,7 @@ def process(
 
 def calculate_offsets(asym_ids):
     """A function that calculate the offset when preparing cross link data"""
+    asym_ids = asym_ids.detach().cpu().numpy()
     unique_asym_ids = np.unique(asym_ids)
     seq_lens = [np.sum(asym_ids==u) for u in unique_asym_ids]
     return np.cumsum([0] + seq_lens)
@@ -247,7 +248,7 @@ def create_xl_features(xl_pickle,offsets,**kwargs):
 
 def process_xl_input(features,**kwargs):
     """Read in and prepare xl pairs"""
-    xl_pickle = pickle.load(gzip(kwargs['crosslinks'],'rb'))
+    xl_pickle = pickle.load(gzip.open(kwargs['crosslinks'],'rb'))
     offsets = calculate_offsets(features['asym_id'])
     xl= create_xl_features(xl_pickle,offsets,**kwargs)
     return xl
@@ -297,10 +298,7 @@ def process_ap(
 
     num_res = int(features["seq_length"])
     cfg, feature_names = make_data_config(config, mode=mode, num_res=num_res)
-
-    # check assembly_num_chains
-    logger.info(f"assembly_num_chains is : {features['assembly_num_chains']} and type is {type(features['assembly_num_chains'])}")
-    features['assembly_num_chains'] = [2]
+    feature_names.append('asym_id')
     if labels is not None:
         features["resolution"] = labels[0]["resolution"].reshape(-1)
     with data_utils.numpy_seed(seed=42, key="protein_feature"):
