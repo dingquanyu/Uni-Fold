@@ -85,9 +85,21 @@ def remove_recycling_dimensions(batch, out):
                 return x.float()
             else:
                 return x
-        batch = tensor_tree_map(lambda t: t[-1, 0, ...], batch)
+        
+        def remove_dim_in_batch(t):
+            if len(t.shape) > 1:
+                return t[-1, 0, ...]
+            else:
+                return t
+            
+        def remove_dim_in_out(t):
+            if len(t.shape) > 1:
+                return t[ 0, ...]
+            else:
+                return t
+        batch = tensor_tree_map(remove_dim_in_batch, batch)
         batch = tensor_tree_map(to_float, batch)
-        out = tensor_tree_map(lambda t: t[0, ...], out)
+        # out = tensor_tree_map(remove_dim_in_out, out)
         out = tensor_tree_map(to_float, out)
         batch = tensor_tree_map(lambda x: np.array(x.cpu()), batch)
         out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
@@ -137,9 +149,8 @@ def predict_iterations(batch,output_dir='',param_path='',
             batch, out = remove_recycling_dimensions(batch,out)
             ca_idx = rc.atom_order["CA"]
             ca_coords = torch.from_numpy(out["final_atom_positions"][..., ca_idx, :])
-
             distances = get_pairwise_distances(ca_coords)#[0]#[0,0]
-            xl = torch.from_numpy(batch['xl'][...,0] > 0)
+            xl = torch.from_numpy(batch['xl'][...,0].astype(np.int32) > 0)
             interface = torch.from_numpy(batch['asym_id'][..., None] != batch['asym_id'][..., None, :])
             satisfied = torch.sum(distances[xl & interface] <= cutoff) / 2
             total_xl = torch.sum(xl & interface) / 2
