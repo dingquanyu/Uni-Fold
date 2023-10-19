@@ -5,6 +5,9 @@ from unifold.dataset import load_and_process, UnifoldDataset
 from unicore.utils import (
     tensor_tree_map,
 )
+from unicore.utils import (
+    tensor_tree_map,
+)
 from unifold.data.data_ops import get_pairwise_distances
 from unifold.data import residue_constants as rc
 import torch
@@ -122,7 +125,7 @@ def predict_iterations(batch,output_dir='',param_path='',
                 k: torch.as_tensor(v, device=model_device)
                 for k, v in batch.items()
             }
-            shapes = {k: v.shape for k, v in batch.items()}
+
             t = time.perf_counter()
             raw_out = model(batch)
             print(f"Inference time: {time.perf_counter() - t}")
