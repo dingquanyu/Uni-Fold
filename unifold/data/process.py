@@ -25,6 +25,8 @@ def nonensembled_fns(common_cfg, mode_cfg):
     operators.append(
         data_ops.make_hhblits_profile_v2 if v2_feature else data_ops.make_hhblits_profile
     )
+    if not common_cfg.use_templates:
+        common_cfg.use_templates = True
     if common_cfg.use_templates:
         operators.extend(
             [
