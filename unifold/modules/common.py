@@ -201,7 +201,11 @@ def residual(residual, x, training):
     if training:
         return x + residual
     else:
-        residual += x
+        if residual.shape == x.shape:
+            residual += x
+        else:
+            x = torch.squeeze(x,0)
+            residual += x
         return residual
 
 
