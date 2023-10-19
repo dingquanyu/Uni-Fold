@@ -12,7 +12,6 @@ from unifold.data.process_multimer import (
     pair_and_merge,
     add_assembly_features,
     convert_monomer_features,
-    post_process,
     merge_msas,
 )
 import gzip, pickle
@@ -298,13 +297,18 @@ def process_ap(
 
     num_res = int(features["seq_length"])
     cfg, feature_names = make_data_config(config, mode=mode, num_res=num_res)
-    feature_names.append('asym_id')
+    feature_names += ['asym_id','entity_id','sym_id','template_all_atom_mask','template_aatype','template_all_atom_positions']
     if labels is not None:
         features["resolution"] = labels[0]["resolution"].reshape(-1)
+    
     with data_utils.numpy_seed(seed=42, key="protein_feature"):
         features["crop_and_fix_size_seed"] = np.random.randint(0, 63355)
         features = utils.filter(features, desired_keys=feature_names)
         features = {k: torch.tensor(v) for k, v in features.items()}
+        features["template_mask"] = torch.ones(
+        features["template_aatype"].shape[-1], dtype=torch.float32
+    ).reshape(1,-1)
+        cfg.common.use_template = True
         with torch.no_grad():
             features = process_features(features, cfg.common, cfg[mode])
 
