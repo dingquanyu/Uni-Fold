@@ -97,8 +97,12 @@ def remove_recycling_dimensions(batch, out):
                 return t[ 0, ...]
             else:
                 return t
+        asym_id = batch['asym_id']
+        xl = batch['xl']
         batch = tensor_tree_map(remove_dim_in_batch, batch)
         batch = tensor_tree_map(to_float, batch)
+        batch['asym_id'] = asym_id
+        batch['xl'] = xl
         # out = tensor_tree_map(remove_dim_in_out, out)
         out = tensor_tree_map(to_float, out)
         batch = tensor_tree_map(lambda x: np.array(x.cpu()), batch)
@@ -152,7 +156,7 @@ def predict_iterations(batch,output_dir='',param_path='',
             distances = get_pairwise_distances(ca_coords)#[0]#[0,0]
             xl = torch.from_numpy(batch['xl'][...,0].astype(np.int32) > 0)
             interface = torch.from_numpy(batch['asym_id'][..., None] != batch['asym_id'][..., None, :])
-            satisfied = torch.sum(distances[xl & interface] <= cutoff) / 2
+            satisfied = torch.sum(distances[xl[0] & interface[0]] <= cutoff) / 2
             total_xl = torch.sum(xl & interface) / 2
             if np.mean(out["iptm+ptm"]) > best_iptm:
                 best_iptm = np.mean(out["iptm+ptm"])
