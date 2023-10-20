@@ -98,11 +98,13 @@ def remove_recycling_dimensions(batch, out):
             else:
                 return t
         asym_id = batch['asym_id']
+        aatype = batch['aatype']
         xl = batch['xl']
         batch = tensor_tree_map(remove_dim_in_batch, batch)
         batch = tensor_tree_map(to_float, batch)
         batch['asym_id'] = asym_id
         batch['xl'] = xl
+        batch['aatype'] = aatype
         # out = tensor_tree_map(remove_dim_in_out, out)
         out = tensor_tree_map(to_float, out)
         batch = tensor_tree_map(lambda x: np.array(x.cpu()), batch)
@@ -173,7 +175,6 @@ def predict_iterations(batch,output_dir='',param_path='',
             cur_protein = protein.from_prediction(
                 features=batch, result=out, b_factors=plddt_b_factors
             )
-
             iptm_str = np.mean(out["iptm+ptm"])
 
             cur_save_name = (
