@@ -180,7 +180,14 @@ def predict_iterations(batch,output_dir='',param_path='',
             cur_save_name = (
                 f"AlphaLink2_{cur_seed}_{iptm_str:.3f}.pdb"
             )
-
+            cur_protein.chain_index = np.squeeze(cur_protein.chain_index,0)
+            cur_protein.aatype = np.squeeze(cur_protein.aatype,0)
+            unique_asym_ids = np.unique(cur_protein.chain_index)
+            seq_lens = [np.sum(cur_protein.chain_index==u) for u in unique_asym_ids]
+            residue_index = []
+            for seq_len in seq_lens:
+                residue_index += range(seq_len)
+            cur_protein.residue_index = np.array(residue_index)
             with open(os.path.join(output_dir, cur_save_name), "w") as f:
                 f.write(protein.to_pdb(cur_protein))
             
