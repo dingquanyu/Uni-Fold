@@ -97,15 +97,7 @@ def remove_recycling_dimensions(batch, out):
                 return t[ 0, ...]
             else:
                 return t
-        asym_id = batch['asym_id']
-        aatype = batch['aatype']
-        xl = batch['xl']
-        batch = tensor_tree_map(remove_dim_in_batch, batch)
         batch = tensor_tree_map(to_float, batch)
-        batch['asym_id'] = asym_id
-        batch['xl'] = xl
-        batch['aatype'] = aatype
-        # out = tensor_tree_map(remove_dim_in_out, out)
         out = tensor_tree_map(to_float, out)
         batch = tensor_tree_map(lambda x: np.array(x.cpu()), batch)
         out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
@@ -178,7 +170,7 @@ def predict_iterations(batch,output_dir='',param_path='',
             iptm_str = np.mean(out["iptm+ptm"])
 
             cur_save_name = (
-                f"AlphaLink2_{cur_seed}_{iptm_str:.3f}.pdb"
+                f"AlphaLink2_model_{it}_seed_{cur_seed}_{iptm_str:.3f}.pdb"
             )
             cur_protein.chain_index = np.squeeze(cur_protein.chain_index,0)
             cur_protein.aatype = np.squeeze(cur_protein.aatype,0)
@@ -196,7 +188,7 @@ def predict_iterations(batch,output_dir='',param_path='',
     return best_out, best_seed, plddts
 
 def alphalink_prediction(batch,output_dir,
-                         relax=True, is_multimer=True,
+                         amber_relax=True, is_multimer=True,
                          param_path = "", model_name = MODEL_NAME):
     out, best_seed, plddts = predict_iterations(batch,output_dir,param_path=param_path)
     cur_param_path_postfix = os.path.split(param_path)[-1]
@@ -219,7 +211,7 @@ def alphalink_prediction(batch,output_dir,
     if is_multimer:
         ptms[cur_save_name] = str(np.mean(out["iptm+ptm"]))
 
-    if relax:
+    if amber_relax:
         amber_relaxer = relax.AmberRelaxation(
             max_iterations=RELAX_MAX_ITERATIONS,
             tolerance=RELAX_ENERGY_TOLERANCE,
