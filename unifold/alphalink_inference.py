@@ -39,7 +39,7 @@ def prepare_model_runner(param_path,bf16 = False,model_device=''):
         # enable template samples for diversity
         config.data.predict.subsample_templates = True
     model = AlphaFold(config)
-    print("start to load params {}".format(param_path))
+    print("alphalink_inference 42: start to load params {}".format(param_path))
     state_dict = torch.load(param_path)["ema"]["params"]
     state_dict = {".".join(k.split(".")[1:]): v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
@@ -48,6 +48,7 @@ def prepare_model_runner(param_path,bf16 = False,model_device=''):
     model.inference_mode()
     if bf16:
         model.bfloat16()
+    print(f"alphalink_inference 51: finished loading model params")
     return model
 
 def get_device_mem(device):
@@ -191,6 +192,7 @@ def alphalink_prediction(batch,output_dir,
                          amber_relax=True, is_multimer=True,
                          param_path = "", model_name = MODEL_NAME):
     out, best_seed, plddts = predict_iterations(batch,output_dir,param_path=param_path)
+    _,out = remove_recycling_dimensions(batch,out)
     cur_param_path_postfix = os.path.split(param_path)[-1]
     ptms = {}
     plddt = out["plddt"]
@@ -202,7 +204,7 @@ def alphalink_prediction(batch,output_dir,
     cur_protein = protein.from_prediction(
         features=batch, result=out, b_factors=plddt_b_factors
     )
-
+    print(f"#$$$$#$$ line 206 alphalink_inference aatype is {type(cur_protein.aatype)} and shape: {cur_protein.aatype.shape}")
     iptm_str = np.mean(out["iptm+ptm"])
     cur_save_name = (
         f"AlphaLink2_{cur_param_path_postfix}_{best_seed}_{iptm_str:.3f}"
