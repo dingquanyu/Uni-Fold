@@ -104,7 +104,7 @@ def remove_recycling_dimensions(batch, out):
         return batch, out
 
 def predict_iterations(batch,output_dir='',param_path='',
-                       num_inference = 10,
+                       num_inference = 2,
                        cutoff = 25):
     plddts = {}
     cur_seed = hash((DATA_RANDOM_SEED, 0)) % 100000
