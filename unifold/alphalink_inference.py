@@ -188,11 +188,16 @@ def predict_iterations(batch,output_dir='',param_path='',
 
     return best_out, best_seed, plddts
 
+def change_tensor_to_numpy(cur_protein):
+    cur_protein.aatype = cur_protein.aatype.detach().to('cpu').numpy()
+    cur_protein.residue_index = cur_protein.residue_index.detach().to('cpu').numpy()
+    cur_protein.chain_index = cur_protein.chain_index.detach().to('cpu').numpy()
+    return cur_protein
+
 def alphalink_prediction(batch,output_dir,
                          amber_relax=True, is_multimer=True,
                          param_path = "", model_name = MODEL_NAME):
     out, best_seed, plddts = predict_iterations(batch,output_dir,param_path=param_path)
-    _,out = remove_recycling_dimensions(batch,out)
     cur_param_path_postfix = os.path.split(param_path)[-1]
     ptms = {}
     plddt = out["plddt"]
@@ -204,7 +209,17 @@ def alphalink_prediction(batch,output_dir,
     cur_protein = protein.from_prediction(
         features=batch, result=out, b_factors=plddt_b_factors
     )
-    print(f"#$$$$#$$ line 206 alphalink_inference aatype is {type(cur_protein.aatype)} and shape: {cur_protein.aatype.shape}")
+    
+    cur_protein = change_tensor_to_numpy(cur_protein)
+    cur_protein.chain_index = np.squeeze(cur_protein.chain_index,0)
+    cur_protein.aatype = np.squeeze(cur_protein.aatype,0)
+    
+    unique_asym_ids = np.unique(cur_protein.chain_index)
+    seq_lens = [np.sum(cur_protein.chain_index==u) for u in unique_asym_ids]
+    residue_index = []
+    for seq_len in seq_lens:
+        residue_index += range(seq_len)
+    cur_protein.residue_index = np.array(residue_index)
     iptm_str = np.mean(out["iptm+ptm"])
     cur_save_name = (
         f"AlphaLink2_{cur_param_path_postfix}_{best_seed}_{iptm_str:.3f}"
