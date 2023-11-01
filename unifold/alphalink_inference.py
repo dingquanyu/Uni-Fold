@@ -39,7 +39,6 @@ def prepare_model_runner(param_path,bf16 = False,model_device=''):
         # enable template samples for diversity
         config.data.predict.subsample_templates = True
     model = AlphaFold(config)
-    print("alphalink_inference 42: start to load params {}".format(param_path))
     state_dict = torch.load(param_path)["ema"]["params"]
     state_dict = {".".join(k.split(".")[1:]): v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
@@ -48,7 +47,6 @@ def prepare_model_runner(param_path,bf16 = False,model_device=''):
     model.inference_mode()
     if bf16:
         model.bfloat16()
-    print(f"alphalink_inference 51: finished loading model params")
     return model
 
 def get_device_mem(device):
@@ -105,7 +103,7 @@ def remove_recycling_dimensions(batch, out):
         return batch, out
 
 def predict_iterations(batch,output_dir='',param_path='',
-                       num_inference = 2,
+                       num_inference = 10,
                        cutoff = 25):
     plddts = {}
     cur_seed = hash((DATA_RANDOM_SEED, 0)) % 100000
