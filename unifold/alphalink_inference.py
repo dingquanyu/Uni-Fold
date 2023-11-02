@@ -195,6 +195,7 @@ def change_tensor_to_numpy(cur_protein):
 def alphalink_prediction(batch,output_dir,
                          amber_relax=True, is_multimer=True,
                          param_path = "", model_name = MODEL_NAME):
+    os.makedirs(output_dir, exist_ok=True)
     out, best_seed, plddts = predict_iterations(batch,output_dir,param_path=param_path)
     cur_param_path_postfix = os.path.split(param_path)[-1]
     ptms = {}
