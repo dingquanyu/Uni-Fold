@@ -12,6 +12,7 @@ from unifold.data.data_ops import get_pairwise_distances
 from unifold.data import residue_constants as rc
 import torch
 from alphafold.relax import relax
+from alphapulldown.plot_pae import plot_pae_from_matrix
 import math,time
 import numpy as np
 import pickle,gzip,os,json
@@ -102,7 +103,7 @@ def remove_recycling_dimensions(batch, out):
         out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
         return batch, out
 
-def predict_iterations(feature_dict,output_dir='',param_path='',
+def predict_iterations(feature_dict,output_dir='',param_path='',input_seqs=[],
                        configs=None,crosslinks='',chain_id_map=None,
                        num_inference = 10,
                        cutoff = 25):
@@ -143,9 +144,8 @@ def predict_iterations(feature_dict,output_dir='',param_path='',
             t = time.perf_counter()
             torch.autograd.set_detect_anomaly(True)
             raw_out = model(batch)
-            pae_logits = raw_out['pae_logits']
             print(f"Inference time: {time.perf_counter() - t}")
-            score = ["plddt", "ptm", "iptm", "iptm+ptm"]
+            score = ["plddt", "ptm", "iptm", "iptm+ptm",'predicted_aligned_error']
             out = {
                     k: v for k, v in raw_out.items()
                     if k.startswith("final_") or k in score
@@ -162,9 +162,7 @@ def predict_iterations(feature_dict,output_dir='',param_path='',
                 best_iptm = np.mean(out["iptm+ptm"])
                 best_out = out
                 best_seed = cur_seed           
-
             print("Current seed: %d Model %d Crosslink satisfaction: %.3f Model confidence: %.3f" %(cur_seed,it,satisfied / total_xl, np.mean(out["iptm+ptm"])))
-
             plddt = out["plddt"]
             mean_plddt = np.mean(plddt)
             plddt_b_factors = np.repeat(
@@ -178,6 +176,11 @@ def predict_iterations(feature_dict,output_dir='',param_path='',
             cur_save_name = (
                 f"AlphaLink2_model_{it}_seed_{cur_seed}_{iptm_str:.3f}.pdb"
             )
+            cur_plot_name = f"AlphaLink2_model_{it}_seed_{cur_seed}_{iptm_str:.3f}_pae.png"
+            # plot PAE
+            plot_pae_from_matrix(input_seqs,
+                                 pae_matrix=out['predicted_aligned_error'],
+                                 figure_name=os.path.join(output_dir, cur_plot_name))
             cur_protein.chain_index = np.squeeze(cur_protein.chain_index,0)
             cur_protein.aatype = np.squeeze(cur_protein.aatype,0)
             unique_asym_ids = np.unique(cur_protein.chain_index)
@@ -200,15 +203,17 @@ def change_tensor_to_numpy(cur_protein):
     return cur_protein
 
 def alphalink_prediction(batch,output_dir,
-                         amber_relax=True, is_multimer=True,
+                         amber_relax=True, is_multimer=True,input_seqs=[],
                          configs = None,crosslinks='',chain_id_map=None,
                          param_path = "", model_name = MODEL_NAME):
     os.makedirs(output_dir, exist_ok=True)
     out, best_seed, plddts = predict_iterations(batch,output_dir,
                                                 configs=configs,crosslinks=crosslinks,
+                                                input_seqs=input_seqs,
                                                 chain_id_map=chain_id_map,
                                                 param_path=param_path,
                                                 )
+
     cur_param_path_postfix = os.path.split(param_path)[-1]
     ptms = {}
     plddt = out["plddt"]
@@ -231,6 +236,12 @@ def alphalink_prediction(batch,output_dir,
     cur_save_name = (
         f"AlphaLink2_{cur_param_path_postfix}_{best_seed}_{iptm_str:.3f}"
     )
+    # plot PAE
+    cur_plot_name = f"AlphaLink2_{cur_param_path_postfix}_{best_seed}_{iptm_str:.3f}_pae_best.png"
+    plot_pae_from_matrix(input_seqs,
+                            pae_matrix=out['predicted_aligned_error'],
+                            figure_name=os.path.join(output_dir, cur_plot_name))
+    
     plddts[cur_save_name] = str(mean_plddt)
     if is_multimer:
         ptms[cur_save_name] = str(np.mean(out["iptm+ptm"]))
