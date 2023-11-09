@@ -301,7 +301,7 @@ def process_ap(
     if labels is not None:
         features["resolution"] = labels[0]["resolution"].reshape(-1)
     
-    with data_utils.numpy_seed(seed=42, key="protein_feature"):
+    with data_utils.numpy_seed(seed=seed, key="protein_feature"):
         features["crop_and_fix_size_seed"] = np.random.randint(0, 63355)
         features = utils.filter(features, desired_keys=feature_names)
         features = {k: torch.tensor(v) for k, v in features.items()}

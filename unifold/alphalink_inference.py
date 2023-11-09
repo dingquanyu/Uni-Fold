@@ -15,6 +15,7 @@ from alphafold.relax import relax
 import math,time
 import numpy as np
 import pickle,gzip,os,json
+from unifold.dataset import process_ap
 # from https://github.com/deepmind/alphafold/blob/main/run_alphafold.py
 
 RELAX_MAX_ITERATIONS = 0
@@ -34,7 +35,6 @@ def prepare_model_runner(param_path,bf16 = False,model_device=''):
     config.data.common.max_recycling_iters = MAX_RECYCLING_ITERS
     config.globals.max_recycling_iters = MAX_RECYCLING_ITERS
     config.data.predict.num_ensembles = NUM_ENSEMBLES
-    is_multimer = config.model.is_multimer
     if SAMPLE_TEMPLATES:
         # enable template samples for diversity
         config.data.predict.subsample_templates = True
@@ -102,13 +102,11 @@ def remove_recycling_dimensions(batch, out):
         out = tensor_tree_map(lambda x: np.array(x.cpu()), out)
         return batch, out
 
-def predict_iterations(batch,output_dir='',param_path='',
+def predict_iterations(feature_dict,output_dir='',param_path='',
+                       configs=None,crosslinks='',chain_id_map=None,
                        num_inference = 10,
                        cutoff = 25):
     plddts = {}
-    cur_seed = hash((DATA_RANDOM_SEED, 0)) % 100000
-
-    seed = 0
     best_out = None
     best_iptm = 0.0
     best_seed = None
@@ -119,9 +117,16 @@ def predict_iterations(batch,output_dir='',param_path='',
     model = prepare_model_runner(param_path,model_device=model_device)
     
     for it in range(num_inference):
-        cur_seed = hash((DATA_RANDOM_SEED, seed)) % 100000
-        seq_len = batch["aatype"].shape[-1]
+        cur_seed = hash((DATA_RANDOM_SEED, it)) % 100000
+        batch,_ = process_ap(config=configs.data,
+                           features=feature_dict,
+                           mode="predict",labels=None,
+                           seed=cur_seed,batch_idx=None,
+                           data_idx=None,is_distillation=False,
+                           chain_id_map = chain_id_map,
+                           crosslinks = crosslinks)
         # faster prediction with large chunk/block size
+        seq_len = batch["aatype"].shape[-1]
         chunk_size, block_size = automatic_chunk_size(
                                     seq_len,
                                     model_device
@@ -136,7 +141,9 @@ def predict_iterations(batch,output_dir='',param_path='',
             }
 
             t = time.perf_counter()
+            torch.autograd.set_detect_anomaly(True)
             raw_out = model(batch)
+            pae_logits = raw_out['pae_logits']
             print(f"Inference time: {time.perf_counter() - t}")
             score = ["plddt", "ptm", "iptm", "iptm+ptm"]
             out = {
@@ -156,7 +163,7 @@ def predict_iterations(batch,output_dir='',param_path='',
                 best_out = out
                 best_seed = cur_seed           
 
-            print("Model %d Crosslink satisfaction: %.3f Model confidence: %.3f" %(it,satisfied / total_xl, np.mean(out["iptm+ptm"])))
+            print("Current seed: %d Model %d Crosslink satisfaction: %.3f Model confidence: %.3f" %(cur_seed,it,satisfied / total_xl, np.mean(out["iptm+ptm"])))
 
             plddt = out["plddt"]
             mean_plddt = np.mean(plddt)
@@ -194,9 +201,14 @@ def change_tensor_to_numpy(cur_protein):
 
 def alphalink_prediction(batch,output_dir,
                          amber_relax=True, is_multimer=True,
+                         configs = None,crosslinks='',chain_id_map=None,
                          param_path = "", model_name = MODEL_NAME):
     os.makedirs(output_dir, exist_ok=True)
-    out, best_seed, plddts = predict_iterations(batch,output_dir,param_path=param_path)
+    out, best_seed, plddts = predict_iterations(batch,output_dir,
+                                                configs=configs,crosslinks=crosslinks,
+                                                chain_id_map=chain_id_map,
+                                                param_path=param_path,
+                                                )
     cur_param_path_postfix = os.path.split(param_path)[-1]
     ptms = {}
     plddt = out["plddt"]
@@ -208,10 +220,6 @@ def alphalink_prediction(batch,output_dir,
     cur_protein = protein.from_prediction(
         features=batch, result=out, b_factors=plddt_b_factors
     )
-    
-    cur_protein = change_tensor_to_numpy(cur_protein)
-    cur_protein.chain_index = np.squeeze(cur_protein.chain_index,0)
-    cur_protein.aatype = np.squeeze(cur_protein.aatype,0)
     
     unique_asym_ids = np.unique(cur_protein.chain_index)
     seq_lens = [np.sum(cur_protein.chain_index==u) for u in unique_asym_ids]
