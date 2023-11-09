@@ -23,7 +23,7 @@ setup(
     author="DP Technology",
     author_email="unifold@dp.tech",
     license="Apache License, Version 2.0",
-    url="https://github.com/dptech-corp/Uni-Fold",
+    url="https://github.com/dingquanyu/Uni-Fold",
     packages=find_packages(
         exclude=["scripts", "tests", "example_data", "docker", "benchmark", "img", "evaluation", "notebooks"]
     ),
