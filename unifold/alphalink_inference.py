@@ -105,7 +105,7 @@ def remove_recycling_dimensions(batch, out):
 
 def predict_iterations(feature_dict,output_dir='',param_path='',input_seqs=[],
                        configs=None,crosslinks='',chain_id_map=None,
-                       num_inference = 10,
+                       num_inference = 30,
                        cutoff = 25):
     plddts = {}
     best_out = None

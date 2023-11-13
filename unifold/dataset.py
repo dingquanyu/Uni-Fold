@@ -327,6 +327,8 @@ def process_ap(
         else:
             xl = bin_xl(xl,num_res)
         features['xl'] = torch.unsqueeze(torch.tensor(xl),0)
+    else:
+        features['xl'] =  torch.tensor(np.zeros((num_res,num_res,1)))
     return features, labels
 
 
